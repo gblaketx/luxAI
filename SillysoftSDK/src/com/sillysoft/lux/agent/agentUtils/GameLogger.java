@@ -1,5 +1,10 @@
 package com.sillysoft.lux.agent.agentUtils;
 
+import com.opencsv.CSVWriter;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,10 +33,20 @@ public class GameLogger {
     private Map<String, Integer> numWins;
 
 
+    /**
+     * The directory to which logs are written
+     */
+    private String outDir = "C:\\Users\\gblak\\Documents\\risk_AI_data\\testLog";
+
     protected GameLogger() {
         // Read initialization conditions from LOG_CONFIG file
         playerIDMap = new HashMap<>();
         numWins = new HashMap<>();
+
+        // TODO: append to outDir the target directory in config file
+        // or use some smart directory generation scheme
+
+        writeWinsToCSV();
     }
 
     public static GameLogger getInstance() {
@@ -78,6 +93,23 @@ public class GameLogger {
 
     public void logLoss(int agentID) {
 
+    }
+
+    private void writeWinsToCSV() {
+        final String outfileName = outDir + "test.csv";
+        File file = new File(outfileName);
+        try {
+            FileWriter outputfile = new FileWriter(file);
+            CSVWriter writer = new CSVWriter(outputfile);
+
+            String[] header = {"Player", "Wins", "Losses"};
+            writer.writeNext(header);
+
+            writer.close();
+
+        } catch (IOException e){
+            e.printStackTrace();
+        }
     }
 
 }

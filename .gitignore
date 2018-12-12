@@ -149,6 +149,7 @@ hs_err_pid*
 
 # Build and documentation
 /SillysoftSDK/out
+/SillysoftSDK/target
 /SillysoftSDK/javadocs
 
 # Vox, we're not working with that
