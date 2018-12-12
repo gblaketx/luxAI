@@ -1,0 +1,73 @@
+<html><head><title>AI SDK Info</title></head>
+
+<body>
+<table width=750 align=center><TR><TD><font face="Verdana">
+<P align=center>
+<b><font size="+2">AI SDK Info</font></b>
+<P>
+This SDK contains everything you need to write your own computer AI for Lux and Vox. The SDK uses the Java programming language and is made up of a series of public API as well as example source code implementations.
+<P>
+<B>The Agent Interfaces</b><BR>
+Each AI is a class that implements the <a href="javadocs/com/sillysoft/lux/agent/LuxAgent.html">LuxAgent</a> (or <a href="javadocs/com/sillysoft/vox/agent/VoxAgent.html">VoxAgent</a> for Castle Vox) interface. The interface comes with lots of comments, and should probably be the first thing you examine.
+<P>
+If you are unfamiliar with java interfaces, it is basically just a list of function prototypes. To write a class that implements the interface, you just fill in the code for all of the prototypes.
+<P>
+<B>The Game API</b><BR>
+Other then the Agent interface, agents must interact with the game. This is done using the public game API. Have a look at the <a href="Lux_AI_javadocs.html">Lux API javadocs</a> or <a href="javadocs/index.html?com/sillysoft/vox/package-summary.html">Vox API javadocs</a> to see what is available.
+<P>
+<B>Examples</b><BR>
+The source code of many example agents are included, inside the src/com/sillysoft/lux/agent directory. The code is licensed for non-profit use.
+<P>
+<B>To Compile</b><BR>
+Method #1: Use the included apache ant build.xml file to build using ant.<br>
+Method #2: Copy the java files inside src into your preferred IDE.<br>
+<P>
+<B>Installing</b><BR>
+Once you have finished writing an agent, place your compiled .class file inside the Agents folder inside the game's <a href="http://sillysoft.net/wiki/?SupportFolder">support folder</a>. Your agent should appear in the agent select-boxes when the game is next run. If you use ant to compile then modify the build.xml file to specify your support folder and you can automatically move the newly compiled file into place.
+<P>
+<b>Debugging</b><br>
+Here are <a href="http://sillysoft.net/forums/viewtopic.php?f=9&t=25677">instructions for setting up debugging</a> in some popular IDE environments.
+<P>
+<b>Multiple Classes</b><br>
+To get a multiple-class AI to load: put the main class that implements the Agent interface directly in the Agents folder, then also create a package-folder hierarchy inside that same folder and put all secondary classes into their proper package folder.
+<P>&nbsp;<br>
+<B>Random Notes:</b><BR>
+Find other BotMasters and discussion in the online <a href="http://sillysoft.net/forums/viewforum.php?f=9"><b>Robot House Forum</b></a> (and especially the <a href="http://sillysoft.net/forums/viewtopic.php?f=9&t=8348">Helpful Links</a> thread).
+<P>
+All method calls into AIs are inside try/catch statements. This means that errors within agents should not cause the game to crash. Whenever an exception is caught it is printed to standard out including a stacktrace.
+<P>
+As well, a message is printed to standard out whenever an agent sends an improper command. (eg. it tries to attack a country that it owns)
+<P>
+(Under MacOS X, standard out of all the running applications can be seen with the Console application, located in /Applications/Utilities/ 
+<P>
+For testing purposes it is sometimes useful to run game after game after game. Start Lux from the command line and pass it the -superfast option to get a mode that uses less graphics. You'll still have to start a game and turn on the Autoplay feature in the Preferences.
+<br>&nbsp;
+<P>
+<b><font size="+2">Lux AI Example Notes:</font></b>
+<P>
+The source code for all of the built-in agents come included with this SDK inside the 'src/com/sillysoft/lux/agent' directory. You are free to use this code for non-profit purposes.
+<P>
+The example AIs aren't HTML formatted, so I won't link to them. They are all java classes with lots of comments. Meant to be viewed in your text editor of choice.
+<P>
+I recommend that you look at Angry.java first for an example of a simple agent. That should give you a good idea of how  agents interact with Lux's API.
+<P>
+After that, you probably want to take a gander at SmartAgentBase.java which is a utility superclass used by all of my more advanced agents.
+<P>
+Cluster.java is a good example of a subclass of SmartAgentBase. The general strategy of Cluster is to work on expanding a cluster of Countries. Subclasses improve on his behavior by limiting their attacks, or trying to focus them better. Subclasses of Cluster include: Shaft, Quo, Yakool, and Boscoe.
+<P>
+Pixie.java is based on a totally different premise from the Cluster-family. She examines each continent seperately, and decides which ones she has a chance of taking over. Then she will place armies and attack in those continents. EvilPixie and BetterPixie use the same technique as Pixie, with BetterPixie being the most advanced.
+<P>
+Killbot.java is an agent that uses the behaviour of Vulture.java to eliminate weak players. Killbot pairs up Vulture and BetterPixie behaviour.
+
+
+
+<P>&nbsp;<P>
+Thank you very much for downloading this SDK. If you have any questions/comments please let me know.
+<P>&nbsp;<P>
+Your friend in world domination,<BR>
+Dustin Quasar Sacks<BR>
+<a href="mailto:dustin@sillysoft.net">dustin@sillysoft.net</a>
+
+</td></tr></table>
+
+</body></html>
