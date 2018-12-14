@@ -41,12 +41,14 @@ protected Random rand;
 
 public AngryLogger()
 	{
+		// Note: The AI is initialized at the beginning of every game AND when the application starts
 	rand = new Random();
 	}
 
 // Save references to 
 public void setPrefs( int newID, Board theboard )
 	{
+		// Note: This is called before each game start
 	ID = newID;		// this is how we distinguish what countries we own
 
 	board = theboard;
@@ -307,8 +309,7 @@ public String message( String message, Object data )
 	if ("youLose".equals(message))
 		{
 		int conqueringPlayerID = ((Integer)data).intValue();
-		// now you could log that you have lost this game...
-//		board.playAudioAtURL("http://sillysoft.net/sounds/boo.wav");
+		GameLogger.getInstance().logLoss(ID);
 		}
 	else if ("attackNotice".equals(message))
 		{

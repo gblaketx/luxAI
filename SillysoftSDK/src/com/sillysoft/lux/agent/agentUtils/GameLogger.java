@@ -1,20 +1,33 @@
 package com.sillysoft.lux.agent.agentUtils;
 
-import com.opencsv.CSVWriter;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 public class GameLogger {
 
     /**
-     * How frequently to write results to a file, in terms of number of games.
-     * TODO: should be set by CONFIG file
+     * Location of the config file
      */
-    private static final int LOG_EVERY = 1;
+    private final String CONFIG_FILEPATH = "C:\\Program Files (x86)\\Lux\\Support" +
+            "\\Agents\\com\\sillysoft\\lux\\agent\\agentUtils\\loggerConfig.properties";
+
+    /**
+     * How frequently to write results to a file, in terms of number of games.
+     * Set once by config file and should not be reset.
+     */
+    private int LOG_EVERY;
+
+    /**
+     * Whether or not the logger should record anything.
+     * Set once by config file and should not be reset.
+     */
+    private boolean IS_ACTIVE;
 
     /** Singleton instance of GameLogger. */
     private static GameLogger _instance = null;
@@ -31,22 +44,43 @@ public class GameLogger {
      */
     private Map<Integer, String> playerIDMap;
     private Map<String, Integer> numWins;
-
+    private Map<String, Integer> numLosses;
 
     /**
      * The directory to which logs are written
      */
-    private String outDir = "C:\\Users\\gblak\\Documents\\risk_AI_data\\testLog";
+    private String outDir = "C:\\Users\\gblak\\Documents\\risk_AI_data";
+    private String targetDir = "";
 
+    /**
+     * BEWARE: The GameLogger is intended for use only for a single tournament of play
+     * The game should be closed after the tournament is over or the logger will not reset
+     */
     protected GameLogger() {
         // Read initialization conditions from LOG_CONFIG file
         playerIDMap = new HashMap<>();
         numWins = new HashMap<>();
+        numLosses = new HashMap<>();
 
-        // TODO: append to outDir the target directory in config file
-        // or use some smart directory generation scheme
+        setConfigProperties(CONFIG_FILEPATH);
 
-        writeWinsToCSV();
+        // The logger will always try to create a new directory to store output
+        // The directory base name is taken from the config file (for example, tournament\\round)
+        // A number is appended to the directory with an underscore to make it unique
+        int appendID = 0;
+        while(true) {
+            Path outDirPath = Paths.get(outDir, String.format("%s_%d", targetDir, appendID));
+            if(Files.notExists(outDirPath)) {
+                outDir = outDirPath.toString();
+                break;
+            }
+            appendID++;
+        }
+
+        if(!new File(outDir).mkdir()) {
+            System.out.println("Failed to create directory at path " + outDir);
+        }
+
     }
 
     public static GameLogger getInstance() {
@@ -56,6 +90,25 @@ public class GameLogger {
             _instance = new GameLogger();
         }
         return _instance;
+    }
+
+    /**
+     * Reads configuration properties from the provided file
+     */
+    private void setConfigProperties(String configFilename) {
+        Properties prop = new Properties();
+        InputStream input = null;
+        try {
+            input = new FileInputStream(configFilename);
+            prop.load(input);
+            LOG_EVERY = Integer.parseInt(prop.getProperty("log_every"));
+            IS_ACTIVE = prop.getProperty("is_active").equals("T");
+            targetDir = prop.getProperty("target_dir");
+            input.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -70,41 +123,52 @@ public class GameLogger {
         System.out.println(String.format("Agent %s version %.2f has id %d", agentName, agentVersion, agentID));
 
         String playerID = String.format("%s_%.2f", agentName, agentVersion);
+
+        // If we've added a new player, initialize their counts to 0
+        if(!numWins.containsKey(playerID)) {
+            numWins.put(playerID, 0);
+            numLosses.put(playerID, 0);
+        }
         playerIDMap.put(agentID, playerID);
-        numWins.put(playerID, 0);
     }
 
     public void logWin(int agentID) {
-        System.out.println("Logging win");
-        System.out.println(String.format("GameLogger logs that agent %d won", agentID));
+        if(!IS_ACTIVE) return;
 
         String playerID = playerIDMap.get(agentID);
         numWins.put(playerID, 1 + numWins.get(playerID));
-
         numGamesPlayed++;
 
+        // Note: this will only work properly if all players are loggers
         if(numGamesPlayed % LOG_EVERY == 0) {
-            System.out.println("Logging wins to file");
-            System.out.println(numWins);
+            writeWinsToCSV();
         }
 
         // TODO: Clear any information associated with the game
     }
 
     public void logLoss(int agentID) {
+        if(!IS_ACTIVE) return;
 
+        String playerID = playerIDMap.get(agentID);
+        numLosses.put(playerID, 1 + numLosses.get(playerID));
     }
 
     private void writeWinsToCSV() {
-        final String outfileName = outDir + "test.csv";
+        final String outfileName = outDir + "\\wins.csv";
         File file = new File(outfileName);
         try {
-            FileWriter outputfile = new FileWriter(file);
-            CSVWriter writer = new CSVWriter(outputfile);
+            FileWriter writer = new FileWriter(file);
 
-            String[] header = {"Player", "Wins", "Losses"};
-            writer.writeNext(header);
-
+            // Write wins and losses for each tracked player
+            CSVUtils.writeLine(writer, Arrays.asList("Player", "Wins", "Losses"));
+            for(Map.Entry<String, Integer> entry  : numWins.entrySet()) {
+                CSVUtils.writeLine(writer,
+                    Arrays.asList(
+                        entry.getKey(),
+                        String.valueOf(entry.getValue()),
+                        String.valueOf(numLosses.get(entry.getKey()))));
+            }
             writer.close();
 
         } catch (IOException e){
