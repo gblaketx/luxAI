@@ -2,6 +2,9 @@ package com.sillysoft.lux.agent;
 
 import com.sillysoft.lux.*;
 import com.sillysoft.lux.agent.agentUtils.GameLogger;
+import com.sillysoft.lux.agent.agentUtils.GameState;
+import com.sillysoft.lux.agent.agentUtils.GameState.GamePhase;
+import com.sillysoft.lux.agent.agentUtils.MonteCarloSolver;
 import com.sillysoft.lux.util.*;
 
 //
@@ -16,9 +19,11 @@ import com.sillysoft.lux.util.*;
 //	For other uses please contact lux@sillysoft.net
 //
 
-public class EvilPixieLogger extends PublicPixie
+public class Monty extends PublicPixie
 {
-	public EvilPixieLogger()
+	protected MonteCarloSolver solver;
+
+	public Monty()
 	{
 		mustKillPlayer = -1;
 		outnumberBy = 1.3f;
@@ -27,12 +32,12 @@ public class EvilPixieLogger extends PublicPixie
 
 	public String name()
 	{
-		return "EvilPixie";
+		return "Monty";
 	}
 
 	public String description()
 	{
-		return "EvilPixie is Pixie's evil twin sister.";
+		return "Monty employs Monte Carlo tree search.";
 	}
 
 	public void setPrefs(int newID, Board theboard ) {
@@ -44,6 +49,10 @@ public class EvilPixieLogger extends PublicPixie
 		numCountries = countries.length;
 		numContinents = board.getNumberOfContinents();
 		GameLogger.getInstance().setPlayerInfo(name(), version(), ID);
+
+		// Initiate solver:
+		solver = new MonteCarloSolver(theboard);
+
 	}
 
 	public void cardsPhase( Card[] cards )
@@ -180,6 +189,8 @@ public class EvilPixieLogger extends PublicPixie
 
 	public void attackPhase( )
 	{
+		GameState testGameState = new GameState(board, GamePhase.Attack, ID);
+		solver.selectActionForPhase(GamePhase.Attack, ID);
 		if (mustKillPlayer != -1)
 		{
 			// do our best to take out this guy
@@ -321,23 +332,9 @@ public class EvilPixieLogger extends PublicPixie
 	public String youWon()
 	{
 		GameLogger.getInstance().logWin(ID);
-		String[] answers = { "You'd be evil too if you grew \nup in this wacko forest",
-				"Always look on the dark side on life",
-				"Vader ain't got nothin on me",
-				"mmmm... Your spleen is so tasty",
-				"Your failure is now complete",
-				"My powers are unrivaled in this quadrant of space-time",
-				"Time to go look for a new world to conquer",
-				"She chose fashion, \nand I chose evil",
-				"Your friends have failed you",
-				"You rebel scum",
-				"You can call me Pixie Worldwalker",
-				"Join me, and together we can rule the universe!\n \n Oh wait, you're dead",
-				"Fetch me the head of John Galt",
-				"Now you shall dance for my entertainment",
-				"You shall now become a part of my petting zoo",
-				"Evil shall always prevail,\nbecause good is dumb",
-				"All the best things come in evil packages"};
+		String[] answers = {
+			"You just got Monty'd",
+			"Life is a POMDP."};
 
 		return answers[ rand.nextInt(answers.length) ];
 	}
