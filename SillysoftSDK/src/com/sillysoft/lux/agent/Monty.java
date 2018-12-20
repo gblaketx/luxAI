@@ -1,10 +1,11 @@
 package com.sillysoft.lux.agent;
 
 import com.sillysoft.lux.*;
+import com.sillysoft.lux.agent.agentUtils.Action;
 import com.sillysoft.lux.agent.agentUtils.GameLogger;
-import com.sillysoft.lux.agent.agentUtils.GameState;
 import com.sillysoft.lux.agent.agentUtils.GameState.GamePhase;
 import com.sillysoft.lux.agent.agentUtils.MonteCarloSolver;
+import com.sillysoft.lux.agent.agentUtils.MonteCarloSolver.GameTreeNode;
 import com.sillysoft.lux.util.*;
 
 //
@@ -23,8 +24,7 @@ public class Monty extends PublicPixie
 {
 	protected MonteCarloSolver solver;
 
-	public Monty()
-	{
+	public Monty() {
 		mustKillPlayer = -1;
 		outnumberBy = 1.3f;
 		borderForce = 7+rand.nextInt(15);
@@ -187,38 +187,28 @@ public class Monty extends PublicPixie
 	}
 
 
-	public void attackPhase( )
-	{
-		GameState testGameState = new GameState(board, GamePhase.Attack, ID);
-		solver.selectActionForPhase(GamePhase.Attack, ID);
-		if (mustKillPlayer != -1)
-		{
-			// do our best to take out this guy
-			attackToKillPlayer( mustKillPlayer );
-		}
-
-		for (int i = 0; i < numContinents; i++)
-		{
-			if (ourConts[i])
-			{
-				attackInContinent(i);
-			}
-			takeOutContinentCheck( i );
-		}
-
-		int numPlayers = board.getNumberOfPlayers();
-		for (int p = 0; p < numPlayers; p++)
-		{
-			if (p != ID)
-			{
-				takeOutPlayerCheck(p);
+	public void attackPhase() {
+		while (true) {
+			GameTreeNode root = solver.generateTreeForPhase(GamePhase.Attack, ID);
+			while(true) {
+				Action bestAction = root.selectBestAction();
+				if(bestAction == null) {
+					return;
+				}
+				root = root.getChildren().get(bestAction);
+				if(root.getValue() <= 0.0) {
+					return;
+				}
+				board.attack(
+						bestAction.getSourceCountryID(),
+						bestAction.getTargetCountryID(),
+						bestAction.shouldAttackTilDead());
+				// If we're victorious, continue. Otherwise, reevaluate by regenerating the game tree.
+				if(board.getCountries()[bestAction.getTargetCountryID()].getOwner() != ID) {
+					break;
+				}
 			}
 		}
-
-		// Only attack for a card if we outnumber someone 5:1
-		attackForCard(5);
-		attackHogWild();
-		attackStalemate();
 	}// End of attackPhase
 
 	// A check to see if someone else owns this continent. If they do then we try to kill it

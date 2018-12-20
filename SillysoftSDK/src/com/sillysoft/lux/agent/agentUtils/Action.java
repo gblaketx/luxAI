@@ -18,19 +18,26 @@ public class Action {
     private int sourceCountryID = 0;
 
     /**
-     * The number of armies to use. Ignored in draft phase.
+     * The number of armies to use. Ignored in draft and attack phase.
      */
     private int numArmies = 0;
+
+    /**
+     * Whether an attack should continue until all armies on one side or the other are dead.
+     */
+    private boolean attackTilDead = true;
 
     public static Action Draft(int targetCountryID) {
         return new Action(GameState.GamePhase.Draft, targetCountryID, 0, 1);
     }
 
-    public static Action Attack(int targetCountryID, int sourceCountryID, int numArmies) {
-        return new Action(GameState.GamePhase.Attack, targetCountryID, sourceCountryID, numArmies);
+    public static Action Attack(int sourceCountryID, int targetCountryID) {
+        return new Action(GameState.GamePhase.Attack, sourceCountryID, targetCountryID, 0);
     }
 
-    protected Action(GameState.GamePhase phase, int targetCountryID, int sourceCountryID, int numArmies) {
+    protected Action(
+        GameState.GamePhase phase, int sourceCountryID, int targetCountryID, int numArmies)
+    {
         this.phase = phase;
         this.targetCountryID = targetCountryID;
         this.sourceCountryID = sourceCountryID;
@@ -57,5 +64,11 @@ public class Action {
         return sourceCountryID;
     }
 
+    public boolean shouldAttackTilDead() {
+        if(phase != GameState.GamePhase.Attack) {
+            throw new RuntimeException("Error: Attack till dead should only be used in attack phase");
+        }
+        return attackTilDead;
+    }
 
 }
