@@ -20,7 +20,7 @@ import com.sillysoft.lux.util.*;
 //	For other uses please contact lux@sillysoft.net
 //
 
-public class Monty extends PublicPixie
+public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 {
 	protected MonteCarloSolver solver;
 
@@ -53,6 +53,10 @@ public class Monty extends PublicPixie
 		// Initiate solver:
 		solver = new MonteCarloSolver(theboard);
 
+	}
+
+	public void setCountries(Country[] countries) {
+		this.countries = countries;
 	}
 
 	public void cardsPhase( Card[] cards )
@@ -189,7 +193,7 @@ public class Monty extends PublicPixie
 
 	public void attackPhase() {
 		while (true) {
-			GameTreeNode root = solver.generateTreeForPhase(GamePhase.Attack, ID);
+			GameTreeNode root = solver.generateTreeForPhase(GamePhase.Attack, ID, this);
 			while(true) {
 				Action bestAction = root.selectBestAction();
 				if(bestAction == null) {

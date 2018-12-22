@@ -63,6 +63,9 @@ public class GameLogger {
         numLosses = new HashMap<>();
 
         setConfigProperties(CONFIG_FILEPATH);
+        if(!IS_ACTIVE) {
+            return;
+        }
 
         // The logger will always try to create a new directory to store output
         // The directory base name is taken from the config file (for example, tournament\\round)

@@ -2,8 +2,8 @@ package com.sillysoft.lux.agent.agentUtils;
 
 import com.sillysoft.lux.Board;
 import com.sillysoft.lux.Country;
+import com.sillysoft.lux.agent.LuxAgent;
 import com.sillysoft.lux.util.ArmiesIterator;
-import com.sillysoft.lux.util.BoardHelper;
 import com.sillysoft.lux.util.CountryIterator;
 import com.sun.istack.internal.Nullable;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -11,6 +11,11 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import java.util.*;
 
 public class MonteCarloSolver {
+
+    public interface SimAgent extends LuxAgent {
+        void setCountries(Country[] countries);
+    }
+
 
     public class GameTreeNode {
         private GameState state;
@@ -71,28 +76,31 @@ public class MonteCarloSolver {
     }
 
     /** The initial depth used for rollout and simulation. */
-    private final int INIT_DEPTH = 4;
+    private final int INIT_DEPTH = 20;
 
     /** Factor modulating how much to explore (exploration bonus). */
     private final double EXPLORE_FACTOR = 0.29;
 
     /** Number of iterations to perform when selecting actions. */
-    private final int NUM_ITERS = 10;
+    private final int NUM_ITERS = 100;
 
     /** A reference to the board, given to the solver when it's instantiated. */
     private Board board;
 
     private Policy defaultPolicy;
 
-    /** Copy of original countries array. Modified in simulation. */
-    private Country[] simCountries;
-
     /** Maps from GameState to corresponding game tree node. */
     private Map<GameState, GameTreeNode> tree;
 
+    /** The active agent in generateTreeForPhase. TODO: could be method var*/
+    private LuxAgent agent;
+
+    /** Used to simulate actions on the board. */
+    private BoardSimulator boardSimulator;
+
     public MonteCarloSolver(Board board) {
         this.board = board;
-        simCountries = BoardHelper.getCountriesCopy(board.getCountries());
+        boardSimulator = new BoardSimulator(board.getCountries());
         defaultPolicy = Policy.AngryDefault(board);
     }
 
@@ -102,22 +110,36 @@ public class MonteCarloSolver {
      * @param player
      * @return The node at the root of the GameTree for the phase
      */
-    public GameTreeNode generateTreeForPhase(GameState.GamePhase phase, int player) {
+    public GameTreeNode generateTreeForPhase(
+        GameState.GamePhase phase, int player, SimAgent agent)
+    {
+        GameState startState = new GameState(board, phase, player);
+        Country[] originalCountries = board.getCountries();
+        boardSimulator.setFromGameState(startState);
+        agent.setCountries(boardSimulator.getCountries());
+        this.agent = agent;
         tree = new HashMap<>();
+        GameTreeNode resultNode;
         switch (phase) {
             case Draft:
-                return generateDraftTree(player);
+                resultNode = generateDraftTree(player);
+                break;
             case Reinforce:
-                return generateReinforceTree(player);
+                resultNode = generateReinforceTree(player);
+                break;
             case Attack:
-                return generateAttackTree(player);
+                resultNode = generateAttackTree(startState, player);
+                break;
             case Fortify:
-                return generateFortifyTree(player);
+                resultNode = generateFortifyTree(player);
+                break;
             default:
                 throw new RuntimeException(
                     String.format(
                         "Phase: %s not handled in selectActionForPhase", phase.toString()));
         }
+        agent.setCountries(originalCountries);
+        return resultNode;
     }
 
     /**
@@ -148,12 +170,11 @@ public class MonteCarloSolver {
         throw new NotImplementedException();
     }
 
-    private GameTreeNode generateAttackTree(int player) {
-        GameState state = new GameState(board, GameState.GamePhase.Attack, player);
+    private GameTreeNode generateAttackTree(GameState startState, int player) {
         for(int i = 0; i < NUM_ITERS; i++) {
-            simulateAttack(state, INIT_DEPTH);
+            simulateAttack(startState, INIT_DEPTH);
         }
-        return tree.get(state);
+        return tree.get(startState);
     }
 
     private GameTreeNode generateFortifyTree(int player) {
@@ -165,8 +186,7 @@ public class MonteCarloSolver {
             return 0.0; // TODO: call an eval function
         }
 
-        // Countries are set to match the state here
-        state.applyToCountries(simCountries);
+        // TODO: Countries are set to match the state here?
         if(!tree.containsKey(state)) {
             // If state not in tree:
             // For action in actions:
@@ -201,6 +221,12 @@ public class MonteCarloSolver {
             }
         }
 
+        // TODO: how to encode stopping?
+        if(bestAction == null) {
+            return node.getValue();
+        }
+
+
         // Note: Generate successor may change the countries array.
         // That's okay because it's reset on the next simulateAttack call.
         ImmutablePair<GameState, Double> successor = generateAttackSuccessor(state, bestAction);
@@ -221,12 +247,13 @@ public class MonteCarloSolver {
 
         Action action = defaultPolicy.attack(gameState.getPlayerTurn(), gameState);
         ImmutablePair<GameState, Double> result = generateAttackSuccessor(gameState, action);
-        return result.getRight() + rolloutAttack(gameState, depth-1);
+        return result.getRight() + rolloutAttack(result.getLeft(), depth-1);
     }
 
     private List<Action> getAttackActions(GameState state) {
         List<Action> attackActions = new ArrayList<>();
-        CountryIterator armies = new ArmiesIterator(state.getPlayerTurn(), 2, simCountries);
+        boardSimulator.setFromGameState(state);
+        CountryIterator armies = new ArmiesIterator(state.getPlayerTurn(), 2, boardSimulator.getCountries());
         while (armies.hasNext()) {
             Country us = armies.next();
             for(Country neighbor: us.getAdjoiningList()) {
@@ -246,19 +273,21 @@ public class MonteCarloSolver {
                     0.0);
         }
 
-        state.applyToCountries(simCountries);
-        // TODO: Can only two countries be used instead of all of them?
-//        PublicBoard simulatedBoard = new PublicBoard(simCountries);
-        // TODO: Figure out how to properly simulate attacks. Simply using simCountries doesn't work.
-        // Must something else be done?
+        boardSimulator.setFromGameState(state);
+
+        // TODO: Can only two countries be used instead of all of them? Investigate fast copy
         int currentPlayerID = state.getPlayerTurn();
-        board.attack(
-            simCountries[action.getSourceCountryID()],
-            simCountries[action.getTargetCountryID()],
+        boardSimulator.attack(
+            agent,
+            action.getSourceCountryID(),
+            action.getTargetCountryID(),
             action.shouldAttackTilDead());
 
         // TODO: Tune reward
-        double reward = simCountries[action.getTargetCountryID()].getOwner() == currentPlayerID ? 1.0 : 0.0;
+        double reward = boardSimulator
+            .getCountries()[action.getTargetCountryID()].getOwner() == currentPlayerID
+            ? 1.0
+            : 0.0;
 
         return new ImmutablePair<>(
             new GameState(board, GameState.GamePhase.Attack, currentPlayerID),
