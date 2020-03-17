@@ -18,13 +18,11 @@ public class MonteCarloSolver {
 
 
     public class GameTreeNode {
-        private GameState state;
         private Map<Action, GameTreeNode> children;
         private int numVisits = 1;
         private double value = 0.0;
 
-        GameTreeNode(GameState state) {
-            this.state = state;
+        GameTreeNode() {
             children = new HashMap<>();
         }
 
@@ -42,10 +40,6 @@ public class MonteCarloSolver {
 
         public void addChild(Action action, GameTreeNode child) {
             children.put(action, child);
-        }
-
-        public void setState(GameState state) {
-            this.state = state;
         }
 
         public void incrementVisits() {
@@ -82,7 +76,7 @@ public class MonteCarloSolver {
     private final double EXPLORE_FACTOR = 0.29;
 
     /** Number of iterations to perform when selecting actions. */
-    private final int NUM_ITERS = 100;
+    private final int NUM_ITERS = 10;
 
     /** A reference to the board, given to the solver when it's instantiated. */
     private Board board;
@@ -193,9 +187,10 @@ public class MonteCarloSolver {
             //      Update count and value estimates at node
             // Add state to tree
             // return rollout(state, depth, defaultPolicy)
-            GameTreeNode node = new GameTreeNode(state);
+            GameTreeNode node = new GameTreeNode();
             for(Action action: getAttackActions(state)) {
-                node.addChild(action, new GameTreeNode(null));
+                node.incrementVisits();
+                node.addChild(action, new GameTreeNode());
             }
             // TODO: setting child state?
             tree.put(state, node);
@@ -208,13 +203,13 @@ public class MonteCarloSolver {
         // node.incrementVisits()
         // node.incrementQ()
         GameTreeNode node = tree.get(state);
-        double bestUtility = 0.0;
+        double bestUtility = -1.0;
         Action bestAction = null;
         for(Map.Entry<Action, GameTreeNode> entry : node.getChildren().entrySet()) {
             GameTreeNode child = entry.getValue();
             double utility = child.getValue() +
                 EXPLORE_FACTOR * Math.sqrt(
-                    Math.log(node.getNumVisits()) / Math.log(child.getNumVisits()));
+                    Math.log(node.getNumVisits()) / child.getNumVisits()); // TODO: Fix explore bonus
             if(utility > bestUtility) {
                 bestUtility = utility;
                 bestAction = entry.getKey();
@@ -226,15 +221,12 @@ public class MonteCarloSolver {
             return node.getValue();
         }
 
-
         // Note: Generate successor may change the countries array.
         // That's okay because it's reset on the next simulateAttack call.
         ImmutablePair<GameState, Double> successor = generateAttackSuccessor(state, bestAction);
         double estQ = successor.getRight() + simulateAttack(successor.getLeft(), depth-1);
 
         GameTreeNode child = node.getChildren().get(bestAction);
-        // TODO: Set state from simulation?
-//        child.setState(successor.getLeft());
         child.incrementVisits();
         child.addValue((estQ - child.getValue()) / child.getNumVisits());
         return estQ;

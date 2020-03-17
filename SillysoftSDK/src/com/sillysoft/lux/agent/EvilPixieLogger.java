@@ -32,7 +32,7 @@ public class EvilPixieLogger extends PublicPixie
 
 	public String description()
 	{
-		return "EvilPixie is Pixie's evil twin sister.";
+		return "EvilPixie is Pixie's evil twin sister. Ha.";
 	}
 
 	public void setPrefs(int newID, Board theboard ) {

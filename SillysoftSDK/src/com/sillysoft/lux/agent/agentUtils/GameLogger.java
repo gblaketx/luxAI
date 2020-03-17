@@ -14,7 +14,7 @@ public class GameLogger {
     /**
      * Location of the config file
      */
-    private final String CONFIG_FILEPATH = "C:\\Program Files (x86)\\Lux\\Support" +
+    private final String CONFIG_FILEPATH = "D:\\Program Files (x86)\\Lux\\Support" +
             "\\Agents\\com\\sillysoft\\lux\\agent\\agentUtils\\loggerConfig.properties";
 
     /**
@@ -49,7 +49,7 @@ public class GameLogger {
     /**
      * The directory to which logs are written
      */
-    private String outDir = "C:\\Users\\gblak\\Documents\\risk_AI_data";
+    private String outDir = "D:\\gamedev\\AI\\Risk\\risk_AI_data";
     private String targetDir = "";
 
     /**
@@ -87,7 +87,6 @@ public class GameLogger {
     }
 
     public static GameLogger getInstance() {
-        System.out.println("Getting game logger instance");
         if (_instance == null) {
             System.out.println("CREATING new instance of GameLogger");
             _instance = new GameLogger();

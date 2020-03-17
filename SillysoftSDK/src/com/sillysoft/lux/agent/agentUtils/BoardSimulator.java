@@ -2,7 +2,6 @@ package com.sillysoft.lux.agent.agentUtils;
 
 import com.sillysoft.lux.Country;
 import com.sillysoft.lux.agent.LuxAgent;
-import com.sillysoft.lux.agent.agentUtils.GameState;
 import com.sillysoft.lux.util.BoardHelper;
 
 import java.util.Arrays;
