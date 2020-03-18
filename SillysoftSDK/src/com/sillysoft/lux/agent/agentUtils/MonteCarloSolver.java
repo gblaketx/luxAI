@@ -70,13 +70,13 @@ public class MonteCarloSolver {
     }
 
     /** The initial depth used for rollout and simulation. */
-    private final int INIT_DEPTH = 20;
+    private static final int INIT_DEPTH = 20;
 
     /** Factor modulating how much to explore (exploration bonus). */
-    private final double EXPLORE_FACTOR = 0.29;
+    private static final double EXPLORE_FACTOR = 0.29;
 
     /** Number of iterations to perform when selecting actions. */
-    private final int NUM_ITERS = 10;
+    private static final int NUM_ITERS = 10;
 
     /** A reference to the board, given to the solver when it's instantiated. */
     private Board board;
@@ -107,8 +107,8 @@ public class MonteCarloSolver {
     public GameTreeNode generateTreeForPhase(
         GameState.GamePhase phase, int player, SimAgent agent)
     {
-        GameState startState = new GameState(board, phase, player);
         Country[] originalCountries = board.getCountries();
+        GameState startState = new GameState(originalCountries, phase, player);
         boardSimulator.setFromGameState(startState);
         agent.setCountries(boardSimulator.getCountries());
         this.agent = agent;
@@ -189,7 +189,7 @@ public class MonteCarloSolver {
             // return rollout(state, depth, defaultPolicy)
             GameTreeNode node = new GameTreeNode();
             for(Action action: getAttackActions(state)) {
-                node.incrementVisits();
+                node.incrementVisits(); // TODO: initialize or increment?
                 node.addChild(action, new GameTreeNode());
             }
             // TODO: setting child state?
@@ -261,7 +261,7 @@ public class MonteCarloSolver {
     private ImmutablePair<GameState,Double> generateAttackSuccessor(GameState state, @Nullable Action action) {
         if(action == null) {
             return new ImmutablePair<>(
-                new GameState(board, GameState.GamePhase.Fortify, state.getPlayerTurn()),
+                new GameState(board.getCountries(), GameState.GamePhase.Fortify, state.getPlayerTurn()),
                     0.0);
         }
 
@@ -281,8 +281,9 @@ public class MonteCarloSolver {
             ? 1.0
             : 0.0;
 
+        // TODO: GameState should hold the updated board, but it just holds the same old board. I think this is the main problem
         return new ImmutablePair<>(
-            new GameState(board, GameState.GamePhase.Attack, currentPlayerID),
+            new GameState(boardSimulator.getCountries(), GameState.GamePhase.Attack, currentPlayerID),
             reward);
     }
 

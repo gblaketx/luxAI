@@ -40,14 +40,14 @@ public class GameState {
      */
     private final int playerTurn;
 
-    public GameState(Board board, GamePhase phase, int player) {
+    public GameState(Country[] countries, GamePhase phase, int player) {
         this.phase = phase;
         playerTurn = player;
 
-        armiesOnCountry = new int[board.getNumberOfCountries()];
-        countryOwners = new int[board.getNumberOfCountries()];
+        armiesOnCountry = new int[countries.length];
+        countryOwners = new int[countries.length];
 
-        for(Country country: board.getCountries()) {
+        for(Country country: countries) {
             int countryCode = country.getCode();
             armiesOnCountry[countryCode] = country.getArmies();
             countryOwners[countryCode] = country.getOwner();

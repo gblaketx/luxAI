@@ -44,7 +44,7 @@ public class BoardSimulator {
         if(attacker.getArmies() <= 1) {
             throw new RuntimeException("Error: Attacker country has fewer than two armies");
         }
-        if(IntStream.of(attacker.getAdjoiningCodeList()).noneMatch(x -> x == countryCodeDefender)) {
+        if(IntStream.of(attacker.getAdjoiningCodeList()).noneMatch(x -> x == countryCodeDefender)) { // TODO: better method canGoTo?
             throw new RuntimeException("Error: Attacker and defender countries not adjacent");
         }
         if(attacker.getOwner() == defender.getOwner()) {
@@ -55,7 +55,8 @@ public class BoardSimulator {
             simulateRoll(attacker, defender);
             // If the attacker wins, call moveArmiesIn
             if(attacker.getOwner() == defender.getOwner()) {
-                agent.moveArmiesIn(countryCodeAttacker, countryCodeDefender);
+                int numArmiesToMoveIn = agent.moveArmiesIn(countryCodeAttacker, countryCodeDefender);
+                simulateMoveArmies(attacker, defender, numArmiesToMoveIn);
                 break;
             }
             if(!attackTillDead) {
@@ -67,7 +68,7 @@ public class BoardSimulator {
     }
 
     /**
-     * Simulates a roll an updates the number of armies in each country (including potentially
+     * Simulates a roll and updates the number of armies in each country (including potentially
      * changing ownership)
      * @param attacker
      * @param defender
@@ -127,6 +128,31 @@ public class BoardSimulator {
             dice[i] = ThreadLocalRandom.current().nextInt(1, MAX_DICE_VAL + 1);
         }
         Arrays.sort(dice);
+    }
+
+    /**
+     * Moves armies into the simulated country that has just been conquered.
+     * @param source Source country for the armies
+     * @param dest Destination country for the armies
+     * @param numToMoveIn The number of armies to move from source to dest
+     */
+    private void simulateMoveArmies(Country source, Country dest, int numToMoveIn) {
+        if(!source.canGoto(dest)) {
+            throw new RuntimeException("Error: Cannot move armies between countries that are not adjacent");
+        } else if(source.getOwner() != dest.getOwner()) {
+            throw new RuntimeException("Error: Cannot move armies between countries with different owners");
+        } else if(numToMoveIn >= source.getArmies()) {
+            // If the number of armies to move in is greater than or equal to the number of armies in the source country,
+            // we move everything in
+            dest.setArmies(source.getArmies() - 1, null);
+            source.setArmies(1,null);
+//            throw new RuntimeException(String.format("Error: Attacker country cannot move in %d armies", numToMoveIn));
+        } else if(numToMoveIn > 0) {
+            source.setArmies(source.getArmies() - numToMoveIn, null);
+            dest.setArmies(numToMoveIn, null);
+        }
+        // TODO: do we need to move one army in if the number is 0?
+        // Otherwise, we move no armies
     }
 
 }

@@ -31,7 +31,7 @@ public class Policy {
 
             // So we have found the best matchup for Country <us>. (if there are any enemies)
 
-            // Even though this agent is a little angry, he is still consious of the odds.
+            // Even though this agent is a little angry, he is still conscious of the odds.
             // He will only attack if it is a good-chance of winning.
             if (weakestNeighbor != null && us.getArmies() > weakestNeighbor.getArmies()) {
                 // Angry is a proud dude, and doesn't like to retreat.

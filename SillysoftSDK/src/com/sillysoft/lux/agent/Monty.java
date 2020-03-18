@@ -193,6 +193,7 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 
 	public void attackPhase() {
 		while (true) {
+			// TODO: Game tree has no grandchildren
 			GameTreeNode root = solver.generateTreeForPhase(GamePhase.Attack, ID, this);
 			while(true) {
 				Action bestAction = root.selectBestAction();
@@ -200,17 +201,21 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 					return;
 				}
 				root = root.getChildren().get(bestAction);
+				// TODO: Is this redundant with the null check?
 				if(root.getValue() <= 0.0) {
 					return;
 				}
 				board.attack(
 						bestAction.getSourceCountryID(),
 						bestAction.getTargetCountryID(),
-						bestAction.shouldAttackTilDead());
+				 		bestAction.shouldAttackTilDead());
+
+				// TODO: Is this needed or should we reevaluate every time?
 				// If we're victorious, continue. Otherwise, reevaluate by regenerating the game tree.
-				if(board.getCountries()[bestAction.getTargetCountryID()].getOwner() != ID) {
-					break;
-				}
+//				if(board.getCountries()[bestAction.getTargetCountryID()].getOwner() != ID) {
+//					break;
+//				}
+				break;
 			}
 		}
 	}// End of attackPhase
