@@ -195,28 +195,19 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 		while (true) {
 			// TODO: Game tree has no grandchildren
 			GameTreeNode root = solver.generateTreeForPhase(GamePhase.Attack, ID, this);
-			while(true) {
-				Action bestAction = root.selectBestAction();
-				if(bestAction == null) {
-					return;
-				}
-				root = root.getChildren().get(bestAction);
-				// TODO: Is this redundant with the null check?
-				if(root.getValue() <= 0.0) {
-					return;
-				}
-				board.attack(
-						bestAction.getSourceCountryID(),
-						bestAction.getTargetCountryID(),
-				 		bestAction.shouldAttackTilDead());
-
-				// TODO: Is this needed or should we reevaluate every time?
-				// If we're victorious, continue. Otherwise, reevaluate by regenerating the game tree.
-//				if(board.getCountries()[bestAction.getTargetCountryID()].getOwner() != ID) {
-//					break;
-//				}
-				break;
+			Action bestAction = root.selectBestAction();
+			if(bestAction == null) {
+				return;
 			}
+			root = root.getChildren().get(bestAction);
+			// TODO: Is this redundant with the null check?
+			if(root.getValue() <= 0.0) {
+				return;
+			}
+			board.attack(
+					bestAction.getSourceCountryID(),
+					bestAction.getTargetCountryID(),
+					bestAction.shouldAttackTilDead());
 		}
 	}// End of attackPhase
 
@@ -233,14 +224,14 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 				int[] borders = BoardHelper.getContinentBorders(cont, countries);
 				for (int b = 0; b < borders.length; b++)
 				{
-					Country[] neigbors = countries[borders[b]].getAdjoiningList();
-					for (int n = 0; n < neigbors.length; n++)
+					Country[] neighbors = countries[borders[b]].getAdjoiningList();
+					for (int n = 0; n < neighbors.length; n++)
 					{
-						if (neigbors[n].getOwner() == ID && neigbors[n].getArmies() > countries[borders[b]].getArmies() && neigbors[n].canGoto(countries[borders[b]]))
+						if (neighbors[n].getOwner() == ID && neighbors[n].getArmies() > countries[borders[b]].getArmies() && neighbors[n].canGoto(countries[borders[b]]))
 						{
 							// kill him
 							debug("attacking to take out continent "+cont);
-							if (board.attack(neigbors[n], countries[borders[b]], true) > 0)
+							if (board.attack(neighbors[n], countries[borders[b]], true) > 0)
 								return;
 						}
 					}

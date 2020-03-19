@@ -6,8 +6,6 @@ import com.sillysoft.lux.util.ArmiesIterator;
 import com.sillysoft.lux.util.BoardHelper;
 import com.sillysoft.lux.util.CountryIterator;
 
-import java.util.Arrays;
-
 public class Policy {
 
     private Country[] countries;

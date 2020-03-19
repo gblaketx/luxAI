@@ -73,10 +73,14 @@ public class MonteCarloSolver {
     private static final int INIT_DEPTH = 20;
 
     /** Factor modulating how much to explore (exploration bonus). */
-    private static final double EXPLORE_FACTOR = 0.29;
+//    private static final double EXPLORE_FACTOR = 0.29;
+    private static final double EXPLORE_FACTOR = 4.0;
+
+    /** Factor discounting future rewards. */
+    private static final double DISCOUNT_FACTOR = 0.8;
 
     /** Number of iterations to perform when selecting actions. */
-    private static final int NUM_ITERS = 10;
+    private static final int NUM_ITERS = 20;
 
     /** A reference to the board, given to the solver when it's instantiated. */
     private Board board;
@@ -177,7 +181,7 @@ public class MonteCarloSolver {
 
     private double simulateAttack(GameState state, int depth) {
         if(depth == 0) {
-            return 0.0; // TODO: call an eval function
+            return EvalFunctions.evalHandHeuristic(state, boardSimulator.getCountries(), board);
         }
 
         // TODO: Countries are set to match the state here?
@@ -224,7 +228,7 @@ public class MonteCarloSolver {
         // Note: Generate successor may change the countries array.
         // That's okay because it's reset on the next simulateAttack call.
         ImmutablePair<GameState, Double> successor = generateAttackSuccessor(state, bestAction);
-        double estQ = successor.getRight() + simulateAttack(successor.getLeft(), depth-1);
+        double estQ = successor.getRight() + DISCOUNT_FACTOR * simulateAttack(successor.getLeft(), depth-1);
 
         GameTreeNode child = node.getChildren().get(bestAction);
         child.incrementVisits();
@@ -234,12 +238,12 @@ public class MonteCarloSolver {
 
     private double rolloutAttack(GameState gameState, int depth) {
         if(depth == 0) {
-            return 0.0; // TODO: call an eval function
+            return EvalFunctions.evalHandHeuristic(gameState, boardSimulator.getCountries(), board);
         }
 
         Action action = defaultPolicy.attack(gameState.getPlayerTurn(), gameState);
         ImmutablePair<GameState, Double> result = generateAttackSuccessor(gameState, action);
-        return result.getRight() + rolloutAttack(result.getLeft(), depth-1);
+        return result.getRight() + DISCOUNT_FACTOR * rolloutAttack(result.getLeft(), depth-1);
     }
 
     private List<Action> getAttackActions(GameState state) {
@@ -266,7 +270,7 @@ public class MonteCarloSolver {
         }
 
         boardSimulator.setFromGameState(state);
-
+        int startingArmies = boardSimulator.getCountries()[action.getSourceCountryID()].getArmies();
         // TODO: Can only two countries be used instead of all of them? Investigate fast copy
         int currentPlayerID = state.getPlayerTurn();
         boardSimulator.attack(
@@ -276,10 +280,14 @@ public class MonteCarloSolver {
             action.shouldAttackTilDead());
 
         // TODO: Tune reward
+        Country[] simCountries = boardSimulator.getCountries();
+        int endingArmies = simCountries[action.getSourceCountryID()].getArmies() +
+                simCountries[action.getTargetCountryID()].getArmies();
         double reward = boardSimulator
             .getCountries()[action.getTargetCountryID()].getOwner() == currentPlayerID
             ? 1.0
             : 0.0;
+        reward -= 1.0 - ((double) endingArmies) / startingArmies;
 
         // TODO: GameState should hold the updated board, but it just holds the same old board. I think this is the main problem
         return new ImmutablePair<>(
