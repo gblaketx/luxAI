@@ -4,13 +4,25 @@ import com.sillysoft.lux.Board;
 import com.sillysoft.lux.util.BoardHelper;
 import com.sillysoft.lux.Country;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 public class EvalFunctions {
 
     private static final double NUM_CONTINENT_WEIGHT = 5.0;
-    private static final double OWNERSHIP_WEIGHT = 0.2;
-    private static final double ARMY_WEIGHT = 0.2;
+
+    /** Score weights used for the final weighted average calculation */
+    private static final double OWNERSHIP_WEIGHT = 1.0;
+    private static final double ARMY_WEIGHT = 1.0;
+    private static final double BORDER_SAFETY_WEIGHT = 1.0;
+
+    /** Used to modulate the magnitude of the score returned */
+    private static final double TOTAL_SCORE_WEIGHT = 0.4;
+
+    private static final double BORDER_VULNERABILITY_PENALTY = 2.0;
 
     public static double evalHandHeuristic(GameState gameState, Country[] countries, Board board) {
         // Note: Armies on countries and owners may differ from the board.
@@ -30,10 +42,25 @@ public class EvalFunctions {
         double armyScore = playerArmies + incomes[player];
 
         // Border safety
+        double borderSafetyScore = calculateBorderSafetyScore(player, countries);
 
         // Expansion zones
+        // TODO
 
-        return OWNERSHIP_WEIGHT * ownershipScore + ARMY_WEIGHT * armyScore;
+
+        double totalScore = calculateWeightedAverage(
+                Arrays.asList(OWNERSHIP_WEIGHT, ARMY_WEIGHT, BORDER_SAFETY_WEIGHT),
+                Arrays.asList(ownershipScore, armyScore, borderSafetyScore));
+
+        return  TOTAL_SCORE_WEIGHT * totalScore;
+    }
+
+    private static double calculateWeightedAverage(List<Double> weights, List<Double> values) {
+        double numerator = 0.0;
+        for(int i = 0; i < weights.size(); i++) {
+            numerator += weights.get(i) * values.get(i);
+        }
+        return numerator / weights.stream().reduce(0.0, Double::sum);
     }
 
     /**
@@ -64,9 +91,6 @@ public class EvalFunctions {
                     if(continentOwners[i] == p) {
                         incomes[p] += board.getContinentBonus(i);
                     }
-//                    if(BoardHelper.playerOwnsContinent(p, i, countries)) {
-//                        incomes[p] += board.getContinentBonus(i);
-//                    }
                 }
 
                 // there can be negative continent values. give a minimum of 3 income in all cases
@@ -115,5 +139,74 @@ public class EvalFunctions {
             }
         }
         return continentOwners;
+    }
+
+    /**
+     * Calculates a heuristic representing how safe the player's borders are, incorporating the ratio of exposed
+     * countries to the player's total holdings and the relative strength of friendly and enemy armies on the borders.
+     * @param player
+     * @param countries
+     * @return
+     */
+    private static double calculateBorderSafetyScore(int player, Country[] countries) {
+        // Border width ratio = # of countries with enemy border / total number of countries owned (smaller is better)
+        Set<Country> borderCountries = getBorderCountries(player, countries);
+        double borderWidthRatio = ((double) borderCountries.size()) / BoardHelper.getPlayerCountries(player, countries);
+        double borderArmyScore = calculateBorderArmyScore(player, borderCountries);
+
+        return calculateWeightedAverage(Arrays.asList(1.0, 5.0), Arrays.asList(borderArmyScore, -borderWidthRatio));
+    }
+
+
+    /**
+     * @param player
+     * @param countries
+     * @return A set of all the countries owned by player that border enemy countries
+     */
+    private static Set<Country> getBorderCountries(int player, Country[] countries) {
+        HashSet<Country> borderCountries = new HashSet<>();
+        for(Country country: countries) {
+            if(country.getOwner() == player) {
+                for(Country adjacentCountry: country.getAdjoiningList()) {
+                    if(adjacentCountry.getOwner() != player) {
+                        borderCountries.add(country);
+                        break;
+                    }
+                }
+            }
+        }
+
+        return borderCountries;
+    }
+
+    /**
+     * The border army score calculation is as follows:
+     *  For each country: score = (numArmiesInCountry - totalAdjacentEnemyArmies)
+     *      (multiplied by BORDER_VULNERABILITY_PENALTY if there are more enemy than friendly armies)
+     * The country score is then macro-averaged across all border countries
+     * @param player
+     * @param borderCountries
+     * @return A heuristic score for the safety of border countries based on the number of friendly vs enemy armies.
+     */
+    private static double calculateBorderArmyScore(int player, Set<Country> borderCountries) {
+        if(borderCountries.size() == 0) {
+            return 0.0;
+        }
+
+        double scoreTotal = 0.0;
+        for(Country country: borderCountries) {
+            int totalAdjacentEnemyArmies = 0;
+            for(Country adjacentCountry: country.getAdjoiningList()) {
+                if(adjacentCountry.getOwner() != player) {
+                    totalAdjacentEnemyArmies += adjacentCountry.getArmies();
+                }
+            }
+            double countryScore = country.getArmies() - totalAdjacentEnemyArmies;
+            if(countryScore < 0) {
+                countryScore *= BORDER_VULNERABILITY_PENALTY;
+            }
+            scoreTotal += countryScore;
+        }
+        return scoreTotal / borderCountries.size();
     }
 }

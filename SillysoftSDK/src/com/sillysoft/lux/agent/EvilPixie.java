@@ -131,7 +131,7 @@ void placeToOutnumberEnemies(int numberOfArmies)
                     {
 					us = neigbors[n];
                     armies = neigbors[n].getArmies();
-                    System.out.println("EvilPixie running fixed code path");
+//                    System.out.println("EvilPixie running fixed code path");
                     }
 				}
 			if (us != null)

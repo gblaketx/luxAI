@@ -1,10 +1,8 @@
 package com.sillysoft.lux.agent;
 
 import com.sillysoft.lux.*;
-import com.sillysoft.lux.agent.agentUtils.Action;
-import com.sillysoft.lux.agent.agentUtils.GameLogger;
+import com.sillysoft.lux.agent.agentUtils.*;
 import com.sillysoft.lux.agent.agentUtils.GameState.GamePhase;
-import com.sillysoft.lux.agent.agentUtils.MonteCarloSolver;
 import com.sillysoft.lux.agent.agentUtils.MonteCarloSolver.GameTreeNode;
 import com.sillysoft.lux.util.*;
 
@@ -156,7 +154,7 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 					{
 						us = neigbors[n];
 						armies = neigbors[n].getArmies();
-						System.out.println("EvilPixie running fixed code path");
+//						System.out.println("EvilPixie running fixed code path");
 					}
 				}
 				if (us != null)
@@ -192,8 +190,11 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 
 
 	public void attackPhase() {
+		GameState state = new GameState(countries, GamePhase.Attack, ID);
+		double heuristicScore = EvalFunctions.evalHandHeuristic(state, countries, board);
+		System.out.println(String.format("Heuristic Score: %f", heuristicScore));
 		while (true) {
-			// TODO: Game tree has no grandchildren
+			// TODO: Game tree has no grandchildren?
 			GameTreeNode root = solver.generateTreeForPhase(GamePhase.Attack, ID, this);
 			Action bestAction = root.selectBestAction();
 			if(bestAction == null) {
