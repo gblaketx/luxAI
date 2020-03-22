@@ -6,6 +6,11 @@ import com.sillysoft.lux.agent.agentUtils.GameState.GamePhase;
 import com.sillysoft.lux.agent.agentUtils.MonteCarloSolver.GameTreeNode;
 import com.sillysoft.lux.util.*;
 
+import com.opencsv.CSVReader;
+
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+
 //
 //  EvilPixie.java
 //  Lux
@@ -190,7 +195,17 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 
 
 	public void attackPhase() {
+		// TODO: Despite successful import from Maven, so class def found when running
+//		try {
+//			CSVReader reader = new CSVReader(new FileReader("yourfile.csv"));
+//		} catch(FileNotFoundException e) {
+//			System.out.println("File not found");
+//		}
+
+		// Log state at end of reinforce phase
 		GameState state = new GameState(countries, GamePhase.Attack, ID);
+		GameLogger.getInstance().logTurn(state);
+		
 		double heuristicScore = EvalFunctions.evalHandHeuristic(state, countries, board);
 		System.out.println(String.format("Heuristic Score: %f", heuristicScore));
 		while (true) {

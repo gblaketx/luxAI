@@ -47,6 +47,20 @@ public class GameLogger {
     private Map<String, Integer> numLosses;
 
     /**
+     * Stores an array of JSON objects representing games. Each game has the followng fields:
+     *  winner: string ID of the winner
+     *  players: Map from gameID to stableID for all players
+     *  states: JSON array of GameState JSON objects
+     *
+     *  Each GameState JSON object has the following fields:
+     *      armiesOnCountry: Array of armies on each country
+     *      countryOwners: Array of IDs of country owners
+     *      gamePhase: Phase of the game (Draft, Reinforce, Attack, Fortify)
+     *      playerTurn: ID of player whose turn it is
+     */
+//    private JSONArray games;
+
+    /**
      * The directory to which logs are written
      */
     private String outDir = "D:\\gamedev\\AI\\Risk\\risk_AI_data";
@@ -61,6 +75,7 @@ public class GameLogger {
         playerIDMap = new HashMap<>();
         numWins = new HashMap<>();
         numLosses = new HashMap<>();
+
 
         setConfigProperties(CONFIG_FILEPATH);
         if(!IS_ACTIVE) {
@@ -154,6 +169,10 @@ public class GameLogger {
 
         String playerID = playerIDMap.get(agentID);
         numLosses.put(playerID, 1 + numLosses.get(playerID));
+    }
+
+    public void logTurn(GameState state) {
+        state.toJSON();
     }
 
     private void writeWinsToCSV() {

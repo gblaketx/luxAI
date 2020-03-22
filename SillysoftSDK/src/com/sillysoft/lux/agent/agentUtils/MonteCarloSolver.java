@@ -77,7 +77,7 @@ public class MonteCarloSolver {
     private static final double EXPLORE_FACTOR = 4.0;
 
     /** Factor discounting future rewards. */
-    private static final double DISCOUNT_FACTOR = 0.8;
+    private static final double DISCOUNT_FACTOR = 0.9;
 
     /** Number of iterations to perform when selecting actions. */
     private static final int NUM_ITERS = 20;
@@ -285,9 +285,9 @@ public class MonteCarloSolver {
                 simCountries[action.getTargetCountryID()].getArmies();
         double reward = boardSimulator
             .getCountries()[action.getTargetCountryID()].getOwner() == currentPlayerID
-            ? 1.0
+            ? 0.5
             : 0.0;
-        reward -= 1.0 - ((double) endingArmies) / startingArmies;
+        reward -= 0.5 - 0.5*(((double) endingArmies) / startingArmies);
 
         // TODO: GameState should hold the updated board, but it just holds the same old board. I think this is the main problem
         return new ImmutablePair<>(

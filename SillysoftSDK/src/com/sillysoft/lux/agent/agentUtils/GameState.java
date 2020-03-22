@@ -3,6 +3,9 @@ package com.sillysoft.lux.agent.agentUtils;
 import com.sillysoft.lux.Board;
 import com.sillysoft.lux.Country;
 
+import org.json.simple.JSONObject;
+
+import java.io.Serializable;
 import java.util.Arrays;
 
 public class GameState {
@@ -12,11 +15,15 @@ public class GameState {
      * Draft corresponds to the territory drafting phase at the beginning
      * of the game.
      */
-    public enum GamePhase {
+    public enum GamePhase implements Serializable {
         Draft,
         Reinforce,
         Attack,
-        Fortify
+        Fortify;
+
+        public String getPhase() {
+            return this.name();
+        }
     }
 
     /**
@@ -76,6 +83,15 @@ public class GameState {
 
     public int getPlayerTurn() {
         return playerTurn;
+    }
+
+    public JSONObject toJSON() {
+        JSONObject obj = new JSONObject();
+        obj.put("playerTurn", playerTurn);
+        obj.put("armiesOnCountry", getArmiesOnCountry());
+        obj.put("countryOwners", getCountryOwners());
+        obj.put("gamePhase", phase);
+        return obj;
     }
 
     @Override
