@@ -4,10 +4,11 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+
+import com.google.gson.Gson;
+import com.sillysoft.lux.Board;
+import org.json.simple.JSONArray;
 
 public class GameLogger {
 
@@ -29,6 +30,12 @@ public class GameLogger {
      */
     private boolean IS_ACTIVE;
 
+    /**
+     * Whether or not the game is currently in play. The game is set to be active when players set their info
+     * and is deemed inactive after the first player logs the game end.
+     */
+    private boolean gameIsActive;
+
     /** Singleton instance of GameLogger. */
     private static GameLogger _instance = null;
 
@@ -42,15 +49,16 @@ public class GameLogger {
      * For example, the default Angry bot, version 1, has ID Angry_1.00
      * The global ID is used in all internal data structures tracking information.
      */
-    private Map<Integer, String> playerIDMap;
+//    private Map<Integer, String> playerIDMap; // TODO: this may not be needed
     private Map<String, Integer> numWins;
     private Map<String, Integer> numLosses;
 
     /**
-     * Stores an array of JSON objects representing games. Each game has the followng fields:
-     *  winner: string ID of the winner
+     * Stores an list of JSON serialized objects representing games. Each game has the following fields:
+     *  winner: int ID of the winner
      *  players: Map from gameID to stableID for all players
      *  states: JSON array of GameState JSON objects
+     *  Game is JSON serializable
      *
      *  Each GameState JSON object has the following fields:
      *      armiesOnCountry: Array of armies on each country
@@ -58,7 +66,12 @@ public class GameLogger {
      *      gamePhase: Phase of the game (Draft, Reinforce, Attack, Fortify)
      *      playerTurn: ID of player whose turn it is
      */
-//    private JSONArray games;
+    private List<String> games;
+
+    /**
+     * List of all game states logged in the current game. Reset on each new game.
+     */
+    private List<GameState> gameStates;
 
     /**
      * The directory to which logs are written
@@ -72,10 +85,12 @@ public class GameLogger {
      */
     protected GameLogger() {
         // Read initialization conditions from LOG_CONFIG file
-        playerIDMap = new HashMap<>();
+//        playerIDMap = new HashMap<>();
         numWins = new HashMap<>();
         numLosses = new HashMap<>();
-
+        games = new ArrayList<>();
+        gameStates = new ArrayList<>();
+        gameIsActive = true;
 
         setConfigProperties(CONFIG_FILEPATH);
         if(!IS_ACTIVE) {
@@ -137,23 +152,23 @@ public class GameLogger {
      * @param agentID
      */
     public void setPlayerInfo(String agentName, float agentVersion, int agentID) {
+        gameIsActive = true;
         System.out.println(String.format("Agent %s version %.2f has id %d", agentName, agentVersion, agentID));
 
-        String playerID = String.format("%s_%.2f", agentName, agentVersion);
-
-        // If we've added a new player, initialize their counts to 0
-        if(!numWins.containsKey(playerID)) {
-            numWins.put(playerID, 0);
-            numLosses.put(playerID, 0);
-        }
-        playerIDMap.put(agentID, playerID);
+//        String playerID = String.format("%s_%.2f", agentName, agentVersion);
+//
+//        playerIDMap.put(agentID, playerID);
     }
 
-    public void logWin(int agentID) {
+    // TODO: logger should work if just 1 player is logger or if all are
+    public void logGameEnd(Board board) {
         if(!IS_ACTIVE) return;
+        // TODO: include a flag in properties to allow only logging the win percentage
+        if(!gameIsActive) return;
 
-        String playerID = playerIDMap.get(agentID);
-        numWins.put(playerID, 1 + numWins.get(playerID));
+        Map<Integer, String> playerIDMap = getPlayerIDMap(board);
+        int winnerID = getWinnerID(board);
+        logWinLoss(winnerID, playerIDMap);
         numGamesPlayed++;
 
         // Note: this will only work properly if all players are loggers
@@ -161,18 +176,88 @@ public class GameLogger {
             writeWinsToCSV();
         }
 
-        // TODO: Clear any information associated with the game
+        GameLog gameLog = new GameLog(winnerID, playerIDMap, gameStates);
+        Gson gson = new Gson();
+        games.add(gson.toJson(gameLog));
+        gameStates.clear();
+        gameIsActive = false;
+
+        // TODO: actually write the game log information to a file (use LOG_EVERY)
     }
 
-    public void logLoss(int agentID) {
-        if(!IS_ACTIVE) return;
-
-        String playerID = playerIDMap.get(agentID);
-        numLosses.put(playerID, 1 + numLosses.get(playerID));
+    private void logWinLoss(int winnerID, Map<Integer, String> playerIDMap) {
+        for(Map.Entry<Integer, String> entry: playerIDMap.entrySet()) {
+            int agentID = entry.getKey();
+            String playerID = playerIDMap.get(agentID);
+            // If we've added a new player, initialize their counts to 0
+            if(!numWins.containsKey(playerID)) {
+                numWins.put(playerID, 0);
+                numLosses.put(playerID, 0);
+            }
+            if(agentID == winnerID) {
+                numWins.put(playerID, 1 + numWins.get(playerID));
+            } else {
+                numLosses.put(playerID, 1 + numLosses.get(playerID));
+            }
+        }
     }
+
+    private Map<Integer, String> getPlayerIDMap(Board board) {
+        Map<Integer, String> playerIDMap = new HashMap<>();
+        for(int agentID = 0; agentID < board.getNumberOfPlayers(); agentID++) {
+            String agentName = board.getAgentName(agentID);
+            float agentVersion = board.getAgentInstance(agentName).version();
+            String playerID = String.format("%s_%.2f", agentName, agentVersion);
+            playerIDMap.put(agentID, playerID);
+        }
+        return playerIDMap;
+    }
+
+//    public void logWin(int agentID) {
+//        if(!IS_ACTIVE) return;
+//
+//        String playerID = playerIDMap.get(agentID);
+//        numWins.put(playerID, 1 + numWins.get(playerID));
+//        numGamesPlayed++;
+//
+//        // Note: this will only work properly if all players are loggers
+//        if(numGamesPlayed % LOG_EVERY == 0) {
+//            writeWinsToCSV();
+//        }
+//    }
+//
+//    public void logLoss(int agentID) {
+//        if(!IS_ACTIVE) return;
+//
+//        String playerID = playerIDMap.get(agentID);
+//        numLosses.put(playerID, 1 + numLosses.get(playerID));
+//
+//    }
 
     public void logTurn(GameState state) {
-        state.toJSON();
+        gameStates.add(state);
+    }
+
+    /**
+     * Serializes the game data to JSON and adds it to games.
+     * WARNING: Clears game states in prefparation for the next game.
+     * @param winnerID
+     */
+    private void logGame(int winnerID, Map<Integer, String> playerIDMap) {
+        // TODO: Verify that the player ID map is accurate per the game
+        GameLog gameLog = new GameLog(winnerID, playerIDMap, gameStates);
+        Gson gson = new Gson();
+        games.add(gson.toJson(gameLog));
+        gameStates.clear();
+        gameIsActive = false;
+    }
+
+    /**
+     * Gets the agentID (unstable from game to game) of the winner
+     * TODO: Assumes the game has a winner
+     */
+    private int getWinnerID(Board board) {
+        return board.getCountries()[0].getOwner();
     }
 
     private void writeWinsToCSV() {

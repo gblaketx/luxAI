@@ -81,7 +81,7 @@ protected void setmoveInMemoryBeforeCardAttack(Country attacker)
 
 public String youWon()
 	{
-	GameLogger.getInstance().logWin(ID);
+	GameLogger.getInstance().logGameEnd(board);
 	String[] answers = new String[] { "You're not the boss of me",
 	"It would be illogical to kill without reason",
 	"Hmmm... Fascinating",
@@ -107,7 +107,7 @@ public String youWon()
 
 public String message( String message, Object data ) {
 	if ("youLose".equals(message)) {
-		GameLogger.getInstance().logLoss(ID);
+		GameLogger.getInstance().logGameEnd(board);
 	}
 	return null;
 }

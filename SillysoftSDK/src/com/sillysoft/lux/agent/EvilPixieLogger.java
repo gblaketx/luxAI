@@ -320,7 +320,7 @@ public class EvilPixieLogger extends PublicPixie
 
 	public String youWon()
 	{
-		GameLogger.getInstance().logWin(ID);
+		GameLogger.getInstance().logGameEnd(board);
 		String[] answers = { "You'd be evil too if you grew \nup in this wacko forest",
 				"Always look on the dark side on life",
 				"Vader ain't got nothin on me",
@@ -344,7 +344,7 @@ public class EvilPixieLogger extends PublicPixie
 
 	public String message( String message, Object data ) {
 		if ("youLose".equals(message)) {
-			GameLogger.getInstance().logLoss(ID);
+			GameLogger.getInstance().logGameEnd(board);
 		}
 		return null;
 	}

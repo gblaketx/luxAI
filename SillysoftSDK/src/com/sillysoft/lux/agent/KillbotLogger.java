@@ -57,7 +57,7 @@ public String description()
 
 public String youWon()
 	{
-	GameLogger.getInstance().logWin(ID);
+		GameLogger.getInstance().logGameEnd(board);
 	String[] answers = new String[] {
 		"Die puny humans",
 		"Kill or be killed",
@@ -77,7 +77,7 @@ public String youWon()
 
 public String message( String message, Object data ) {
 	if ("youLose".equals(message)) {
-		GameLogger.getInstance().logLoss(ID);
+		GameLogger.getInstance().logGameEnd(board);
 	}
 	return null;
 }

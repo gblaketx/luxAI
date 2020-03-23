@@ -76,7 +76,7 @@ protected void setmoveInMemoryBeforeCardAttack(Country attacker)
 
 public String youWon()
 	{
-	GameLogger.getInstance().logWin(ID);
+	GameLogger.getInstance().logGameEnd(board);
 	String[] answers = new String[] { "Just another average day for Boscoe",
 	"I'm a hard workin dude",
 	"I work hard for my killing, \n so you better treat me right",
@@ -96,7 +96,7 @@ public String youWon()
 
 	public String message( String message, Object data ) {
 		if ("youLose".equals(message)) {
-			GameLogger.getInstance().logLoss(ID);
+			GameLogger.getInstance().logGameEnd(board);
 		}
 		return null;
 	}

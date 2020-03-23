@@ -1,9 +1,6 @@
 package com.sillysoft.lux.agent.agentUtils;
 
-import com.sillysoft.lux.Board;
 import com.sillysoft.lux.Country;
-
-import org.json.simple.JSONObject;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -85,14 +82,7 @@ public class GameState {
         return playerTurn;
     }
 
-    public JSONObject toJSON() {
-        JSONObject obj = new JSONObject();
-        obj.put("playerTurn", playerTurn);
-        obj.put("armiesOnCountry", getArmiesOnCountry());
-        obj.put("countryOwners", getCountryOwners());
-        obj.put("gamePhase", phase);
-        return obj;
-    }
+    public GamePhase getPhase() { return phase; }
 
     @Override
     public boolean equals(Object obj) {

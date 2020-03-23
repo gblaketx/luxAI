@@ -6,11 +6,6 @@ import com.sillysoft.lux.agent.agentUtils.GameState.GamePhase;
 import com.sillysoft.lux.agent.agentUtils.MonteCarloSolver.GameTreeNode;
 import com.sillysoft.lux.util.*;
 
-import com.opencsv.CSVReader;
-
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-
 //
 //  EvilPixie.java
 //  Lux
@@ -70,6 +65,8 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 
 	public void placeArmies( int numberOfArmies )
 	{
+		GameState state = new GameState(countries, GamePhase.Reinforce, ID);
+		GameLogger.getInstance().logTurn(state);
 		if (placeArmiesToKillDominantPlayer(numberOfArmies))
 		{
 			setupOurConts(0);
@@ -195,13 +192,6 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 
 
 	public void attackPhase() {
-		// TODO: Despite successful import from Maven, so class def found when running
-//		try {
-//			CSVReader reader = new CSVReader(new FileReader("yourfile.csv"));
-//		} catch(FileNotFoundException e) {
-//			System.out.println("File not found");
-//		}
-
 		// Log state at end of reinforce phase
 		GameState state = new GameState(countries, GamePhase.Attack, ID);
 		GameLogger.getInstance().logTurn(state);
@@ -337,7 +327,7 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 
 	public String youWon()
 	{
-		GameLogger.getInstance().logWin(ID);
+		GameLogger.getInstance().logGameEnd(board);
 		String[] answers = {
 			"You just got Monty'd",
 			"Life is a POMDP."};
@@ -347,7 +337,7 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 
 	public String message( String message, Object data ) {
 		if ("youLose".equals(message)) {
-			GameLogger.getInstance().logLoss(ID);
+			GameLogger.getInstance().logGameEnd(board);
 		}
 		return null;
 	}

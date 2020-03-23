@@ -293,7 +293,7 @@ public void fortifyPhase()
 public String youWon()
 	{
 	System.out.println("AngryLogger won and is recording it");
-	GameLogger.getInstance().logWin(ID);
+	GameLogger.getInstance().logGameEnd(board);
 
 	// For variety we store a bunch of answers and pick one at random to return.
 	String[] answers = new String[] {"Muh-Ha-Ha-Ha\nAngry now very happy!",
@@ -309,7 +309,7 @@ public String message( String message, Object data )
 	if ("youLose".equals(message))
 		{
 		int conqueringPlayerID = ((Integer)data).intValue();
-		GameLogger.getInstance().logLoss(ID);
+		GameLogger.getInstance().logGameEnd(board);
 		}
 	else if ("attackNotice".equals(message))
 		{
