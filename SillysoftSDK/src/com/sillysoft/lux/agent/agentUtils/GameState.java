@@ -17,10 +17,6 @@ public class GameState {
         Reinforce,
         Attack,
         Fortify;
-
-        public String getPhase() {
-            return this.name();
-        }
     }
 
     /**

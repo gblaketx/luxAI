@@ -8,7 +8,6 @@ import java.util.*;
 
 import com.google.gson.Gson;
 import com.sillysoft.lux.Board;
-import org.json.simple.JSONArray;
 
 public class GameLogger {
 
@@ -31,6 +30,16 @@ public class GameLogger {
     private boolean IS_ACTIVE;
 
     /**
+     * Whether to record the number of wins in the wins.csv file
+     */
+    private boolean LOG_WINS;
+
+    /**
+     * Whether to log detailed game state data in the games.json file
+     */
+    private boolean LOG_GAME_DATA;
+
+    /**
      * Whether or not the game is currently in play. The game is set to be active when players set their info
      * and is deemed inactive after the first player logs the game end.
      */
@@ -44,12 +53,7 @@ public class GameLogger {
      */
     private int numGamesPlayed = 0;
 
-    /**
-     * Maps from the ID of the player in a specific name to their global ID (name and version)
-     * For example, the default Angry bot, version 1, has ID Angry_1.00
-     * The global ID is used in all internal data structures tracking information.
-     */
-//    private Map<Integer, String> playerIDMap; // TODO: this may not be needed
+
     private Map<String, Integer> numWins;
     private Map<String, Integer> numLosses;
 
@@ -66,7 +70,7 @@ public class GameLogger {
      *      gamePhase: Phase of the game (Draft, Reinforce, Attack, Fortify)
      *      playerTurn: ID of player whose turn it is
      */
-    private List<String> games;
+    private List<GameLog> games;
 
     /**
      * List of all game states logged in the current game. Reset on each new game.
@@ -76,7 +80,7 @@ public class GameLogger {
     /**
      * The directory to which logs are written
      */
-    private String outDir = "D:\\gamedev\\AI\\Risk\\risk_AI_data";
+    private String outDir = "D:\\gamedev\\AI\\Risk\\python\\risk_AI_data";
     private String targetDir = "";
 
     /**
@@ -85,7 +89,6 @@ public class GameLogger {
      */
     protected GameLogger() {
         // Read initialization conditions from LOG_CONFIG file
-//        playerIDMap = new HashMap<>();
         numWins = new HashMap<>();
         numLosses = new HashMap<>();
         games = new ArrayList<>();
@@ -93,27 +96,6 @@ public class GameLogger {
         gameIsActive = true;
 
         setConfigProperties(CONFIG_FILEPATH);
-        if(!IS_ACTIVE) {
-            return;
-        }
-
-        // The logger will always try to create a new directory to store output
-        // The directory base name is taken from the config file (for example, tournament\\round)
-        // A number is appended to the directory with an underscore to make it unique
-        int appendID = 0;
-        while(true) {
-            Path outDirPath = Paths.get(outDir, String.format("%s_%d", targetDir, appendID));
-            if(Files.notExists(outDirPath)) {
-                outDir = outDirPath.toString();
-                break;
-            }
-            appendID++;
-        }
-
-        if(!new File(outDir).mkdir()) {
-            System.out.println("Failed to create directory at path " + outDir);
-        }
-
     }
 
     public static GameLogger getInstance() {
@@ -136,6 +118,8 @@ public class GameLogger {
             LOG_EVERY = Integer.parseInt(prop.getProperty("log_every"));
             IS_ACTIVE = prop.getProperty("is_active").equals("T");
             targetDir = prop.getProperty("target_dir");
+            LOG_WINS = prop.getProperty("log_wins").equals("T");
+            LOG_GAME_DATA = prop.getProperty("log_game_data").equals("T");
             input.close();
 
         } catch (IOException e) {
@@ -155,6 +139,7 @@ public class GameLogger {
         gameIsActive = true;
         System.out.println(String.format("Agent %s version %.2f has id %d", agentName, agentVersion, agentID));
 
+        // TODO: This method may not be needed
 //        String playerID = String.format("%s_%.2f", agentName, agentVersion);
 //
 //        playerIDMap.put(agentID, playerID);
@@ -171,18 +156,20 @@ public class GameLogger {
         logWinLoss(winnerID, playerIDMap);
         numGamesPlayed++;
 
+        if(LOG_GAME_DATA) {
+            GameLog gameLog = new GameLog(winnerID, playerIDMap, gameStates);
+            games.add(gameLog);
+        }
+
         // Note: this will only work properly if all players are loggers
         if(numGamesPlayed % LOG_EVERY == 0) {
             writeWinsToCSV();
+            writeGamesToFile();
+            games.clear();
         }
 
-        GameLog gameLog = new GameLog(winnerID, playerIDMap, gameStates);
-        Gson gson = new Gson();
-        games.add(gson.toJson(gameLog));
         gameStates.clear();
         gameIsActive = false;
-
-        // TODO: actually write the game log information to a file (use LOG_EVERY)
     }
 
     private void logWinLoss(int winnerID, Map<Integer, String> playerIDMap) {
@@ -202,6 +189,11 @@ public class GameLogger {
         }
     }
 
+    /**
+     * Maps from the ID of the player in a specific name to their global ID (name and version)
+     * For example, the default Angry bot, version 1, has ID Angry_1.00
+     * The global ID is used in all internal data structures tracking information.
+     */
     private Map<Integer, String> getPlayerIDMap(Board board) {
         Map<Integer, String> playerIDMap = new HashMap<>();
         for(int agentID = 0; agentID < board.getNumberOfPlayers(); agentID++) {
@@ -213,43 +205,9 @@ public class GameLogger {
         return playerIDMap;
     }
 
-//    public void logWin(int agentID) {
-//        if(!IS_ACTIVE) return;
-//
-//        String playerID = playerIDMap.get(agentID);
-//        numWins.put(playerID, 1 + numWins.get(playerID));
-//        numGamesPlayed++;
-//
-//        // Note: this will only work properly if all players are loggers
-//        if(numGamesPlayed % LOG_EVERY == 0) {
-//            writeWinsToCSV();
-//        }
-//    }
-//
-//    public void logLoss(int agentID) {
-//        if(!IS_ACTIVE) return;
-//
-//        String playerID = playerIDMap.get(agentID);
-//        numLosses.put(playerID, 1 + numLosses.get(playerID));
-//
-//    }
-
     public void logTurn(GameState state) {
+        if(!LOG_GAME_DATA) return;
         gameStates.add(state);
-    }
-
-    /**
-     * Serializes the game data to JSON and adds it to games.
-     * WARNING: Clears game states in prefparation for the next game.
-     * @param winnerID
-     */
-    private void logGame(int winnerID, Map<Integer, String> playerIDMap) {
-        // TODO: Verify that the player ID map is accurate per the game
-        GameLog gameLog = new GameLog(winnerID, playerIDMap, gameStates);
-        Gson gson = new Gson();
-        games.add(gson.toJson(gameLog));
-        gameStates.clear();
-        gameIsActive = false;
     }
 
     /**
@@ -261,8 +219,9 @@ public class GameLogger {
     }
 
     private void writeWinsToCSV() {
-        final String outfileName = outDir + "\\wins.csv";
-        File file = new File(outfileName);
+        if(!LOG_WINS) return;
+        final String outfilePath = getOutfilePath("wins", "csv");
+        File file = new File(outfilePath);
         try {
             FileWriter writer = new FileWriter(file);
 
@@ -279,6 +238,31 @@ public class GameLogger {
 
         } catch (IOException e){
             e.printStackTrace();
+        }
+    }
+
+    private void writeGamesToFile() {
+        if(!LOG_GAME_DATA) return;
+        Gson gson = new Gson();
+        final String outfilePath = getOutfilePath("games", "json");
+        File file = new File(outfilePath);
+        try {
+            FileWriter writer = new FileWriter(file);
+            gson.toJson(games, writer);
+            writer.close();
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String getOutfilePath(String filename, String fileExtension) {
+        int appendID = 0;
+        while(true) {
+            Path outDirPath = Paths.get(outDir, targetDir, String.format("%s_%d.%s", filename, appendID, fileExtension));
+            if(Files.notExists(outDirPath)) {
+                return outDirPath.toString();
+            }
+            appendID++;
         }
     }
 

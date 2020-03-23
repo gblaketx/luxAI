@@ -196,8 +196,8 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 		GameState state = new GameState(countries, GamePhase.Attack, ID);
 		GameLogger.getInstance().logTurn(state);
 		
-		double heuristicScore = EvalFunctions.evalHandHeuristic(state, countries, board);
-		System.out.println(String.format("Heuristic Score: %f", heuristicScore));
+//		double heuristicScore = EvalFunctions.evalHandHeuristic(state, countries, board);
+//		System.out.println(String.format("Heuristic Score: %f", heuristicScore));
 		while (true) {
 			// TODO: Game tree has no grandchildren?
 			GameTreeNode root = solver.generateTreeForPhase(GamePhase.Attack, ID, this);

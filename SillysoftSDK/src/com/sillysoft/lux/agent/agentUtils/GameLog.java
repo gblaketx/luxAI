@@ -1,6 +1,8 @@
 package com.sillysoft.lux.agent.agentUtils;
 
 import com.google.gson.Gson;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,18 +20,17 @@ public class GameLog {
     private final Map<Integer, String> players;
 
     /** An list of all the JSON serialized game states in the game */
-    private final List<String> states;
+    private final List<GameState> states;
 
     /** Contains miscellaneous metadata about the game, such as the number of phases it contains */
-    private Map<String, String> metadata;
+    private Map<String, Object> metadata;
 
     public GameLog(int winner, Map<Integer, String> players, List<GameState> gameStates) {
         this.winner = winner;
         this.players = players;
-        Gson gson = new Gson();
-        this.states = gameStates.stream().map(gson::toJson).collect(Collectors.toList());
+        states = new ArrayList<>(gameStates);
         metadata = new HashMap<>();
-        metadata.put("phasesIncluded", gson.toJson(gameStates.stream().map(GameState::getPhase).distinct().toArray()));
+        metadata.put("phasesIncluded", gameStates.stream().map(GameState::getPhase).distinct().toArray());
     }
 
 }

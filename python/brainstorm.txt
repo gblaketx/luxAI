@@ -1,0 +1,7 @@
+# Steps:
+
+1. Load Data
+2. Featurize Data
+3. Train Model
+4. Evaluate Model
+5. Tune model and hyperparams
