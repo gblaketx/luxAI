@@ -1,5 +1,6 @@
 package com.sillysoft.lux.agent.agentUtils;
 
+import com.google.gson.Gson;
 import com.sillysoft.lux.Board;
 import com.sillysoft.lux.util.BoardHelper;
 import com.sillysoft.lux.Country;
@@ -25,43 +26,79 @@ public class EvalFunctions {
     private static EvalFunctions _instance = null;
 
     private final Process stateEvaluator;
+    private final BufferedReader processReader;
+    private final BufferedReader processErrorReader;
+    private final BufferedWriter processWriter;
+    private final Gson gson;
 
     protected EvalFunctions() throws IOException {
+        gson = new Gson();
         ProcessBuilder pb = new ProcessBuilder("C:\\Users\\gblak\\Anaconda3\\python.exe", "stateEvaluator.py");
         pb.directory(new File("D:\\Program Files (x86)\\Lux\\Support\\Python"));
         stateEvaluator = pb.start();
-//        try {
-//            stateEvaluator.waitFor();
-//        } catch(InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        System.out.println("Exit code: " + stateEvaluator.exitValue());
+        processWriter = new BufferedWriter(
+                new OutputStreamWriter(stateEvaluator.getOutputStream()));
 
-//        BufferedReader errorStream = new BufferedReader(
-//                new InputStreamReader(stateEvaluator.getErrorStream()));
-//        while(errorStream.ready()) {
-//            System.out.println(errorStream.readLine());
-//        }
-//        BufferedWriter outStream = new BufferedWriter(
-//                new OutputStreamWriter(stateEvaluator.getOutputStream()));
-//
-//        outStream.write("Hello, world");
-//        outStream.newLine();
-//        outStream.flush();
-////        outStream.close(); This will close the python process
-//
-//        BufferedReader inStream = new BufferedReader(
-//                new InputStreamReader(stateEvaluator.getInputStream()));
-//
+//        outStream.close(); This will close the python process
+
+        processReader = new BufferedReader(
+                new InputStreamReader(stateEvaluator.getInputStream()));
+
+        processErrorReader = new BufferedReader(
+                new InputStreamReader((stateEvaluator.getErrorStream())));
+
 //        while(inStream.ready()) {
 //            String currentLine = inStream.readLine();
 //            System.out.println("Read from process: " + currentLine);
 //        }
-//        Scanner scanner = new Scanner(stateEvaluator.getInputStream());
-//        while(scanner.hasNextLine()) {
-//            System.out.println(scanner.nextLine());
-//        }
-//        System.out.println("The process is alive: " + stateEvaluator.isAlive());
+    }
+
+    public double evaluateState(GameState state, Country[] countries) {
+        // TODO: Ideally GameState should be up-to-date, but countries may be more accurate. Verify this
+        GameState evalState = new GameState(countries, state.getPhase(), state.getPlayerTurn());
+        String evalStateJSON = gson.toJson(evalState);
+        writeToProcess(evalStateJSON);
+        String score = readFromProcess();
+        if(score == null) {
+            // There's been an error. Give up on scoring.
+            return 0.0;
+        }
+        return Double.parseDouble(score);
+    }
+
+    private String readFromProcess() {
+        String result = null;
+        printProcessErrors();
+        try {
+            result = processReader.readLine();
+        } catch(IOException e) {
+            System.err.println("Error reading from stateEvaluator process");
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    private void printProcessErrors() {
+        System.out.println("Checking for stateEvaluator process errors");
+        try {
+            while(processErrorReader.ready()) {
+                String line = processErrorReader.readLine();
+                System.out.println("PROCESS ERROR: " + line);
+            }
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void writeToProcess(String data) {
+        try {
+            processWriter.write(data);
+            processWriter.newLine();
+            processWriter.flush();
+        } catch(IOException e) {
+            System.err.println("Error writing to stateEvaluator process");
+            e.printStackTrace();
+        }
     }
 
     public static EvalFunctions getInstance() {
