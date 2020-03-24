@@ -42,20 +42,21 @@ public class EvalFunctions {
 //        while(errorStream.ready()) {
 //            System.out.println(errorStream.readLine());
 //        }
-        BufferedWriter outStream = new BufferedWriter(
-                new OutputStreamWriter(stateEvaluator.getOutputStream()));
-
-        outStream.write("Hello, world");
+//        BufferedWriter outStream = new BufferedWriter(
+//                new OutputStreamWriter(stateEvaluator.getOutputStream()));
+//
+//        outStream.write("Hello, world");
+//        outStream.newLine();
 //        outStream.flush();
-//        outStream.close();
-
-        BufferedReader inStream = new BufferedReader(
-                new InputStreamReader(stateEvaluator.getInputStream()));
-
-        String currentLine;
-        while((currentLine = inStream.readLine()) != null) {
-            System.out.println("Read from process: " + currentLine);
-        }
+////        outStream.close(); This will close the python process
+//
+//        BufferedReader inStream = new BufferedReader(
+//                new InputStreamReader(stateEvaluator.getInputStream()));
+//
+//        while(inStream.ready()) {
+//            String currentLine = inStream.readLine();
+//            System.out.println("Read from process: " + currentLine);
+//        }
 //        Scanner scanner = new Scanner(stateEvaluator.getInputStream());
 //        while(scanner.hasNextLine()) {
 //            System.out.println(scanner.nextLine());
