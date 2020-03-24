@@ -39,6 +39,10 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 	}
 
 	public void setPrefs(int newID, Board theboard ) {
+//		System.out.println("Working Directory = " +
+//				System.getProperty("user.dir"));
+		EvalFunctions.getInstance();
+
 		ID = newID;
 
 		board = theboard;

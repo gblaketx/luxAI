@@ -1,25 +1,43 @@
 import json
+import os
 import random
 
 from sklearn.model_selection import train_test_split
 
 class DataLoader:
   SPLIT_RAND_STATE = 43
+  DATA_PATH = "risk_AI_data/gameData"
 
   def __init__(self, datasetName):
-    if datasetName == 'tiny':
+    if datasetName == "tiny":
       dataset = DataLoader.loadTinyDataset()
+    elif datasetName == "full":
+      dataset = DataLoader.loadFullDataset()
     else:
       raise RuntimeError("Dataset {} not found".format(datasetName))
+
+    print("Dataset {} Loaded {} games".format(datasetName, len(dataset)))
 
     self.splitData(dataset)
 
   @staticmethod
   def loadTinyDataset():
-    with open("risk_AI_data/gameData/games_0.json", "r") as infile:
+    with open(os.path.join(DataLoader.DATA_PATH, "games_0.json"), "r") as infile:
       dataset = json.load(infile)
 
     return dataset
+
+  @staticmethod
+  def loadFullDataset():
+    gamesList = []
+    files = os.listdir(DataLoader.DATA_PATH)
+    # Each file contains a list of games
+    for file in files:
+      with open(os.path.join(DataLoader.DATA_PATH, file), "r") as infile:
+        games = json.load(infile)
+      gamesList.extend(games)
+
+    return gamesList
 
   def getData(self, split):
     if split == "train":

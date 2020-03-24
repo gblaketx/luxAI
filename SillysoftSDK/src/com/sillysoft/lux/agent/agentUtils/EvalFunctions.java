@@ -4,10 +4,8 @@ import com.sillysoft.lux.Board;
 import com.sillysoft.lux.util.BoardHelper;
 import com.sillysoft.lux.Country;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.io.*;
+import java.util.*;
 import java.util.stream.IntStream;
 
 public class EvalFunctions {
@@ -23,6 +21,59 @@ public class EvalFunctions {
     private static final double TOTAL_SCORE_WEIGHT = 0.4;
 
     private static final double BORDER_VULNERABILITY_PENALTY = 2.0;
+
+    private static EvalFunctions _instance = null;
+
+    private final Process stateEvaluator;
+
+    protected EvalFunctions() throws IOException {
+        ProcessBuilder pb = new ProcessBuilder("C:\\Users\\gblak\\Anaconda3\\python.exe", "stateEvaluator.py");
+        pb.directory(new File("D:\\Program Files (x86)\\Lux\\Support\\Python"));
+        stateEvaluator = pb.start();
+//        try {
+//            stateEvaluator.waitFor();
+//        } catch(InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        System.out.println("Exit code: " + stateEvaluator.exitValue());
+
+//        BufferedReader errorStream = new BufferedReader(
+//                new InputStreamReader(stateEvaluator.getErrorStream()));
+//        while(errorStream.ready()) {
+//            System.out.println(errorStream.readLine());
+//        }
+        BufferedWriter outStream = new BufferedWriter(
+                new OutputStreamWriter(stateEvaluator.getOutputStream()));
+
+        outStream.write("Hello, world");
+//        outStream.flush();
+//        outStream.close();
+
+        BufferedReader inStream = new BufferedReader(
+                new InputStreamReader(stateEvaluator.getInputStream()));
+
+        String currentLine;
+        while((currentLine = inStream.readLine()) != null) {
+            System.out.println("Read from process: " + currentLine);
+        }
+//        Scanner scanner = new Scanner(stateEvaluator.getInputStream());
+//        while(scanner.hasNextLine()) {
+//            System.out.println(scanner.nextLine());
+//        }
+//        System.out.println("The process is alive: " + stateEvaluator.isAlive());
+    }
+
+    public static EvalFunctions getInstance() {
+        if(_instance == null) {
+            System.out.println("Creating new EvalFunctions instance");
+            try {
+                _instance = new EvalFunctions();
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return _instance;
+    }
 
     public static double evalHandHeuristic(GameState gameState, Country[] countries, Board board) {
         // Note: Armies on countries and owners may differ from the board.
