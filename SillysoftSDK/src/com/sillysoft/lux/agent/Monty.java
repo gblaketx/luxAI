@@ -39,7 +39,7 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 	}
 
 	public void setPrefs(int newID, Board theboard ) {
-		EvalFunctions.getInstance().evaluateState(new GameState(theboard.getCountries(), GamePhase.Attack, newID), theboard.getCountries());
+//		EvalFunctions.getInstance().evaluateState(new GameState(theboard.getCountries(), GamePhase.Attack, newID), theboard.getCountries());
 
 		ID = newID;
 
