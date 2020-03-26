@@ -30,6 +30,8 @@ def analyzeWins(directory, bots=None):
 
     winsData = list(filter(filterPlayers, winsData))
 
+  print(winsData)
+
   calculateTotalWinsPercentage(winsData)
   # calculateAverageWinPercentage(winsData)
 
@@ -77,5 +79,5 @@ def calculateAverageWinPercentage(winsData):
     print("{}: {:.1f}".format(player, percentage * 100))   
 
 if __name__ == "__main__":
-  # analyzeWins("version_0")
-  analyzeWins("version_0", ["Monty_1.00"])
+  analyzeWins("version_0")
+  # analyzeWins("version_0", ["Monty_1.00"])

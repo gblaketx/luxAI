@@ -4,6 +4,7 @@ import com.sillysoft.lux.Board;
 import com.sillysoft.lux.Country;
 import com.sillysoft.lux.agent.LuxAgent;
 import com.sillysoft.lux.util.ArmiesIterator;
+import com.sillysoft.lux.util.BoardHelper;
 import com.sillysoft.lux.util.CountryIterator;
 import com.sun.istack.internal.Nullable;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -70,17 +71,17 @@ public class MonteCarloSolver {
     }
 
     /** The initial depth used for rollout and simulation. */
-    private static final int INIT_DEPTH = 20;
+    private static final int INIT_DEPTH = 10;
 
     /** Factor modulating how much to explore (exploration bonus). */
 //    private static final double EXPLORE_FACTOR = 0.29;
-    private static final double EXPLORE_FACTOR = 4.0;
+    private static final double EXPLORE_FACTOR = 15.0;
 
     /** Factor discounting future rewards. */
-    private static final double DISCOUNT_FACTOR = 0.9;
+    private static final double DISCOUNT_FACTOR = 1.0;
 
     /** Number of iterations to perform when selecting actions. */
-    private static final int NUM_ITERS = 20;
+    private static final int NUM_ITERS = 100;
 
     /** A reference to the board, given to the solver when it's instantiated. */
     private Board board;
@@ -100,6 +101,7 @@ public class MonteCarloSolver {
         this.board = board;
         boardSimulator = new BoardSimulator(board.getCountries());
         defaultPolicy = Policy.AngryDefault(board);
+//        defaultPolicy = Policy.QuoDefault(board);
     }
 
     /**
@@ -194,8 +196,16 @@ public class MonteCarloSolver {
             GameTreeNode node = new GameTreeNode();
             for(Action action: getAttackActions(state)) {
                 node.incrementVisits(); // TODO: initialize or increment?
-                node.addChild(action, new GameTreeNode());
+                GameTreeNode child = new GameTreeNode();
+                node.addChild(action, child);
+
+                // TODO: try to start with a value estimate for every child?
+                ImmutablePair<GameState, Double> result = generateAttackSuccessor(state, action);
+                Country[] countries = BoardHelper.getCountriesCopy(boardSimulator.getCountries());
+                result.getLeft().applyToCountries(countries);
+                child.addValue(result.getRight() + EvalFunctions.evalHandHeuristic(result.getLeft(), countries, board));
             }
+
             // TODO: setting child state?
             tree.put(state, node);
             return rolloutAttack(state, INIT_DEPTH);
@@ -271,6 +281,7 @@ public class MonteCarloSolver {
 
         boardSimulator.setFromGameState(state);
         int startingArmies = boardSimulator.getCountries()[action.getSourceCountryID()].getArmies();
+        Country targetCountryPreAttack = copyCountry(boardSimulator.getCountries()[action.getTargetCountryID()]);
         // TODO: Can only two countries be used instead of all of them? Investigate fast copy
         int currentPlayerID = state.getPlayerTurn();
         boardSimulator.attack(
@@ -280,14 +291,7 @@ public class MonteCarloSolver {
             action.shouldAttackTilDead());
 
         // TODO: Tune reward
-        Country[] simCountries = boardSimulator.getCountries();
-        int endingArmies = simCountries[action.getSourceCountryID()].getArmies() +
-                simCountries[action.getTargetCountryID()].getArmies();
-        double reward = boardSimulator
-            .getCountries()[action.getTargetCountryID()].getOwner() == currentPlayerID
-            ? 0.5
-            : 0.0;
-        reward -= 0.5 - 0.5*(((double) endingArmies) / startingArmies);
+        double reward = getSuccessorReward(boardSimulator.getCountries(), currentPlayerID, startingArmies, action);
 
         // TODO: GameState should hold the updated board, but it just holds the same old board. I think this is the main problem
         return new ImmutablePair<>(
@@ -295,28 +299,32 @@ public class MonteCarloSolver {
             reward);
     }
 
-//    public Country[] getCountriesCopy(GameState gameState) {
-//        // The countries as laid out on the board. These are used to specify adjacencies
-//        Country[] boardCountries = board.getCountries();
-//        Country[] countriesCopy = new Country[boardCountries.length];
-//        int[] owners = gameState.getCountryOwners();
-//        int[] armies = gameState.getArmiesOnCountry();
-//
-//        // pass 1: allocate the countries
-//        for (int i = 0; i < boardCountries.length; i++) {
-//            countriesCopy[i] = new Country(i, boardCountries[i].getContinent(), null);
-//            countriesCopy[i].setArmies(armies[i], null);
-//            countriesCopy[i].setOwner(owners[i], null);
-//        }
-//
-//        // pass 2: create the AdjoiningLists
-//        for (int i = 0; i < boardCountries.length; i++) {
-//            Country[] around = boardCountries[i].getAdjoiningList();
-//            for(Country adjacent : around) {
-//                countriesCopy[i].addToAdjoiningList(countriesCopy[adjacent.getCode()], null);
-//            }
-//        }
-//        return countriesCopy;
-//    }
+    private double getSuccessorReward(Country[] simCountries, int playerID, int startingArmies, Action attack) {
+        // Check: Did we get the country? Did we take a continent? Army losses?
+        double reward = 0.0;
+        int endingArmies = simCountries[attack.getSourceCountryID()].getArmies();
+        Country targetCountry = simCountries[attack.getTargetCountryID()];
+        if(targetCountry.getOwner() == playerID) {
+            // Player took the country
 
+            reward += 0.5; // Country capture reward
+            if(BoardHelper.playerOwnsContinent(playerID, targetCountry.getContinent(), simCountries)) {
+                reward += 2.0; // Continent capture reward TODO: tune for specific continents?
+            }
+            // Loss ratio penalty
+            endingArmies += targetCountry.getArmies();
+
+        }
+        reward -= 0.5 - 0.5*(((double) endingArmies) / startingArmies);
+        return reward;
+
+    }
+
+    private Country copyCountry(Country country) {
+        Country countryCopy = new Country(country.getCode(), country.getContinent(), null);
+        countryCopy.setArmies(countryCopy.getArmies(), null);
+        countryCopy.setName(countryCopy.getName(), null);
+        countryCopy.setOwner(countryCopy.getOwner(), null);
+        return countryCopy;
+    }
 }

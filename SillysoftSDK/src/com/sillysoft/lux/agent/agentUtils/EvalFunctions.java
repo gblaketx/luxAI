@@ -19,7 +19,7 @@ public class EvalFunctions {
     private static final double BORDER_SAFETY_WEIGHT = 1.0;
 
     /** Used to modulate the magnitude of the score returned */
-    private static final double TOTAL_SCORE_WEIGHT = 0.4;
+    private static final double TOTAL_SCORE_WEIGHT = 2.0;
 
     private static final double BORDER_VULNERABILITY_PENALTY = 2.0;
 

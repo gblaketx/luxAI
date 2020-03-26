@@ -233,6 +233,10 @@ public class GameLogger {
                         entry.getKey(),
                         String.valueOf(entry.getValue()),
                         String.valueOf(numLosses.get(entry.getKey()))));
+
+                // Zero out the counts after we write
+                numWins.put(entry.getKey(), 0);
+                numLosses.put(entry.getKey(), 0);
             }
             writer.close();
 

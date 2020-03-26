@@ -38,7 +38,13 @@ public class Monty extends PublicPixie implements MonteCarloSolver.SimAgent
 		return "Monty employs Monte Carlo tree search.";
 	}
 
+	@Override
+	public float version() {
+		return 1.01f;
+	}
+
 	public void setPrefs(int newID, Board theboard ) {
+		// TODO: Remember to call with GamePhase.Fortify at the end of attack phase eval
 //		EvalFunctions.getInstance().evaluateState(new GameState(theboard.getCountries(), GamePhase.Attack, newID), theboard.getCountries());
 
 		ID = newID;
